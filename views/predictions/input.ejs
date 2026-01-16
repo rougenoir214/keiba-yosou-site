@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>予想入力 - <%= race.race_name %></title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+.container { max-width: 1200px; margin: 0 auto; }
+.header { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+.header h1 { color: #333; margin-bottom: 10px; }
+.back-link { display: inline-block; margin-top: 10px; color: #667eea; text-decoration: none; }
+.back-link:hover { text-decoration: underline; }
+.section { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+.section h2 { color: #333; margin-bottom: 15px; border-bottom: 2px solid #667eea; padding-bottom: 10px; }
+table { width: 100%; border-collapse: collapse; }
+th { background: #667eea; color: white; padding: 12px; text-align: left; }
+td { padding: 12px; border-bottom: 1px solid #eee; }
+.mark-select { padding: 8px; border: 2px solid #e0e0e0; border-radius: 5px; font-size: 16px; }
+.waku { width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; }
+.waku-1 { background: white; color: #333; border: 2px solid #333; }
+.waku-2 { background: black; }
+.waku-3 { background: red; }
+.waku-4 { background: blue; }
+.waku-5 { background: yellow; color: #333; }
+.waku-6 { background: green; }
+.waku-7 { background: orange; }
+.waku-8 { background: pink; color: #333; }
+.btn { padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; }
+.btn:hover { background: #5568d3; }
+.btn-success { background: #4caf50; }
+.btn-success:hover { background: #45a049; }
+.btn-danger { background: #f44336; }
+.btn-danger:hover { background: #da190b; }
+.form-group { margin-bottom: 15px; }
+.form-group label { display: block; margin-bottom: 5px; font-weight: 600; color: #555; }
+.form-group select, .form-group input { width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 5px; }
+.bet-list { list-style: none; }
+.bet-item { background: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+.bet-info { flex: 1; }
+.total-amount { font-size: 20px; font-weight: bold; color: #667eea; margin-top: 15px; }
+.remaining-amount { color: #4caf50; margin-top: 5px; }
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+<h1>📝 予想入力 - <%= race.race_name %></h1>
+<p>ユーザー: <%= user.display_name %></p>
+<a href="/races/<%= race.race_id %>" class="back-link">← 出馬表に戻る</a>
+</div>
+<div class="section">
+<h2>🎯 印を入力</h2>
+<form id="marks-form">
+<table>
+<thead><tr><th>枠</th><th>馬番</th><th>馬名</th><th>騎手</th><th>印</th></tr></thead>
+<tbody>
+<% const existingMarks = {}; predictions.forEach(p => { existingMarks[p.umaban] = p.mark; }); %>
+<% horses.forEach(horse => { %>
+<tr>
+<td><div class="waku waku-<%= horse.waku %>"><%= horse.waku %></div></td>
+<td><strong><%= horse.umaban %></strong></td>
+<td><%= horse.horse_name %></td>
+<td><%= horse.jockey %></td>
+<td><select name="mark_<%= horse.umaban %>" class="mark-select">
+<option value="">-</option>
+<option value="◎" <%= existingMarks[horse.umaban] === '◎' ? 'selected' : '' %>>◎</option>
+<option value="○" <%= existingMarks[horse.umaban] === '○' ? 'selected' : '' %>>○</option>
+<option value="▲" <%= existingMarks[horse.umaban] === '▲' ? 'selected' : '' %>>▲</option>
+<option value="△" <%= existingMarks[horse.umaban] === '△' ? 'selected' : '' %>>△</option>
+<option value="☆" <%= existingMarks[horse.umaban] === '☆' ? 'selected' : '' %>>☆</option>
+</select></td>
+</tr>
+<% }); %>
+</tbody>
+</table>
+<button type="submit" class="btn btn-success" style="margin-top: 15px;">印を保存</button>
+</form>
+</div>
+<div class="section">
+<h2>💰 馬券を購入</h2>
+<form id="bet-form">
+<div class="form-group">
+<label for="bet_type">馬券種別</label>
+<select id="bet_type" name="bet_type" required>
+<option value="tansho">単勝</option>
+<option value="fukusho">複勝</option>
+<option value="umaren">馬連</option>
+<option value="umatan">馬単</option>
+<option value="wide">ワイド</option>
+<option value="sanrenpuku">3連複</option>
+<option value="sanrentan">3連単</option>
+</select>
+</div>
+<div class="form-group" id="buy-method-group">
+<label>購入方法</label>
+<div style="display: flex; gap: 20px;">
+<label style="display: flex; align-items: center; gap: 5px;"><input type="radio" name="buy_method" value="normal" checked> 通常</label>
+<label style="display: flex; align-items: center; gap: 5px;" id="box-option"><input type="radio" name="buy_method" value="box"> ボックス</label>
+<label style="display: flex; align-items: center; gap: 5px;" id="formation-option"><input type="radio" name="buy_method" value="formation"> フォーメーション</label>
+</div>
+</div>
+<div id="normal-input" class="buy-method-inputs">
+<div class="form-group">
+<label for="horses_input">馬番（カンマ区切り）</label>
+<input type="text" id="horses_input" name="horses" placeholder="例: 1,3,5">
+<small id="normal-help">単勝・複勝は1頭、馬連・馬単・ワイドは2頭、3連複・3連単は3頭</small>
+</div>
+</div>
+<div id="box-input" class="buy-method-inputs" style="display: none;">
+<div class="form-group">
+<label for="box_horses">選択馬番（カンマ区切り）</label>
+<input type="text" id="box_horses" placeholder="例: 1,3,5,7">
+<small>全組み合わせが自動で購入されます</small>
+</div>
+</div>
+<div id="formation-input" class="buy-method-inputs" style="display: none;">
+<div id="formation-umatan" style="display: none;">
+<div class="form-group">
+<label for="umatan_first">1着（軸・カンマ区切り可）</label>
+<input type="text" id="umatan_first" placeholder="例: 1,3">
+</div>
+<div class="form-group">
+<label for="umatan_second">2着（カンマ区切り）</label>
+<input type="text" id="umatan_second" placeholder="例: 5,7,9">
+<small>1着→2着の全組み合わせが購入されます</small>
+</div>
+</div>
+<div id="formation-2ren" style="display: none;">
+<div class="form-group">
+<label for="axis_horses">軸馬（カンマ区切り・複数可）</label>
+<input type="text" id="axis_horses" placeholder="例: 1,3">
+<small>軸同士の組み合わせも購入されます</small>
+</div>
+<div class="form-group">
+<label for="partner_horses">相手馬（カンマ区切り）</label>
+<input type="text" id="partner_horses" placeholder="例: 5,7,9">
+</div>
+</div>
+<div id="formation-3ren" style="display: none;">
+<div class="form-group">
+<label for="first_horses">1着（カンマ区切り）</label>
+<input type="text" id="first_horses" placeholder="例: 1,3">
+</div>
+<div class="form-group">
+<label for="second_horses">2着（カンマ区切り）</label>
+<input type="text" id="second_horses" placeholder="例: 5,7">
+</div>
+<div class="form-group">
+<label for="third_horses">3着（カンマ区切り）</label>
+<input type="text" id="third_horses" placeholder="例: 9,11">
+</div>
+<small>全組み合わせが自動で購入されます</small>
+</div>
+</div>
+<div class="form-group">
+<label for="amount">1点あたり金額（円）</label>
+<input type="number" id="amount" name="amount" min="100" step="100" value="100" required>
+</div>
+<button type="submit" class="btn">馬券を追加</button>
+</form>
+</div>
+<div class="section">
+<h2>🎫 購入済み馬券</h2>
+<ul class="bet-list">
+<% if (bets.length === 0) { %>
+<p style="color: #888;">まだ馬券を購入していません</p>
+<% } else { %>
+<% const betTypeNames = { 'tansho': '単勝', 'fukusho': '複勝', 'umaren': '馬連', 'umatan': '馬単', 'wide': 'ワイド', 'sanrenpuku': '3連複', 'sanrentan': '3連単' }; let totalAmount = 0; %>
+<% bets.forEach(bet => { totalAmount += bet.amount; %>
+<li class="bet-item">
+<div class="bet-info"><strong><%= betTypeNames[bet.bet_type] %></strong>: <%= bet.horses %> - <%= bet.amount.toLocaleString() %>円</div>
+<button class="btn btn-danger" onclick="deleteBet(<%= bet.id %>)">削除</button>
+</li>
+<% }); %>
+<div class="total-amount">合計: <span id="total-amount"><%= totalAmount.toLocaleString() %></span>円</div>
+<div class="remaining-amount">残り: <%= (10000 - totalAmount).toLocaleString() %>円</div>
+<% } %>
+</ul>
+</div>
+</div>
+<script>
+function updateBuyMethodOptions() {
+const betType = document.getElementById('bet_type').value;
+const isTanFuku = betType === 'tansho' || betType === 'fukusho';
+document.getElementById('box-option').style.display = isTanFuku ? 'none' : 'flex';
+document.getElementById('formation-option').style.display = isTanFuku ? 'none' : 'flex';
+if (isTanFuku) {
+document.querySelector('input[name="buy_method"][value="normal"]').checked = true;
+document.querySelectorAll('.buy-method-inputs').forEach(div => div.style.display = 'none');
+document.getElementById('normal-input').style.display = 'block';
+}
+}
+function updateFormationInputs() {
+const betType = document.getElementById('bet_type').value;
+const isUmatan = betType === 'umatan';
+const is3ren = betType === 'sanrenpuku' || betType === 'sanrentan';
+const is2ren = betType === 'umaren' || betType === 'wide';
+document.getElementById('formation-umatan').style.display = isUmatan ? 'block' : 'none';
+document.getElementById('formation-2ren').style.display = is2ren ? 'block' : 'none';
+document.getElementById('formation-3ren').style.display = is3ren ? 'block' : 'none';
+}
+document.getElementById('bet_type').addEventListener('change', () => {
+updateBuyMethodOptions();
+updateFormationInputs();
+});
+document.querySelectorAll('input[name="buy_method"]').forEach(radio => {
+radio.addEventListener('change', (e) => {
+document.querySelectorAll('.buy-method-inputs').forEach(div => div.style.display = 'none');
+document.getElementById(e.target.value + '-input').style.display = 'block';
+updateFormationInputs();
+});
+});
+updateBuyMethodOptions();
+document.getElementById('marks-form').addEventListener('submit', async (e) => {
+e.preventDefault();
+const formData = new FormData(e.target);
+const marks = {};
+for (const [key, value] of formData.entries()) {
+if (key.startsWith('mark_') && value) {
+marks[key.replace('mark_', '')] = value;
+}
+}
+try {
+const r = await fetch('/predictions/<%= race.race_id %>/marks', {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({ marks })
+});
+alert(r.ok ? '印を保存しました' : 'エラーが発生しました');
+} catch (error) { alert('エラーが発生しました'); }
+});
+document.getElementById('bet-form').addEventListener('submit', async (e) => {
+e.preventDefault();
+const formData = new FormData(e.target);
+const buyMethod = formData.get('buy_method');
+const betType = formData.get('bet_type');
+let horses, axisHorses, partnerHorses, first, second, third;
+if (buyMethod === 'normal') {
+horses = document.getElementById('horses_input').value;
+} else if (buyMethod === 'box') {
+horses = document.getElementById('box_horses').value;
+} else if (buyMethod === 'formation') {
+if (betType === 'umatan') {
+first = document.getElementById('umatan_first').value;
+second = document.getElementById('umatan_second').value;
+} else if (betType === 'sanrenpuku' || betType === 'sanrentan') {
+first = document.getElementById('first_horses').value;
+second = document.getElementById('second_horses').value;
+third = document.getElementById('third_horses').value;
+} else {
+axisHorses = document.getElementById('axis_horses').value;
+partnerHorses = document.getElementById('partner_horses').value;
+}
+}
+const data = {
+bet_type: betType,
+horses: horses || '',
+amount: formData.get('amount'),
+buy_method: buyMethod,
+axis_horses: axisHorses || '',
+partner_horses: partnerHorses || '',
+first: first || '',
+second: second || '',
+third: third || ''
+};
+try {
+const r = await fetch('/predictions/<%= race.race_id %>/bets', {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify(data)
+});
+const result = await r.json();
+if (r.ok) {
+alert(`馬券を追加しました（${result.count}点 × ${data.amount}円 = ${result.total}円）`);
+location.reload();
+} else {
+alert(result.error || 'エラーが発生しました');
+}
+} catch (error) { alert('エラーが発生しました'); }
+});
+async function deleteBet(betId) {
+if (!confirm('この馬券を削除しますか？')) return;
+try {
+const r = await fetch(`/predictions/<%= race.race_id %>/bets/${betId}`, { method: 'DELETE' });
+if (r.ok) { alert('馬券を削除しました'); location.reload(); } else { alert('エラーが発生しました'); }
+} catch (error) { alert('エラーが発生しました'); }
+}
+</script>
+</body>
+</html>

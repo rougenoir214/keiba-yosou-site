@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSVインポート - 競馬予想共有サイト</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: bold;
+        }
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px dashed #667eea;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background: #5568d3;
+        }
+        .info {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        .info h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .info ul {
+            margin-left: 20px;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            color: #667eea;
+            text-decoration: none;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📊 レースデータインポート</h1>
+        
+        <div class="info">
+            <h3>CSVフォーマット</h3>
+            <ul>
+                <li>枠番</li>
+                <li>馬番</li>
+                <li>馬名</li>
+                <li>性齢</li>
+                <li>斤量</li>
+                <li>騎手</li>
+                <li>厩舎</li>
+                <li>馬体重</li>
+                <li>race_id</li>
+            </ul>
+        </div>
+
+        <form action="/admin/import" method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="csvfile">CSVファイルを選択</label>
+                <input type="file" id="csvfile" name="csvfile" accept=".csv" required>
+            </div>
+            
+            <button type="submit" class="btn">アップロード</button>
+        </form>
+
+        <a href="/" class="back-link">← トップページに戻る</a>
+    </div>
+</body>
+</html>

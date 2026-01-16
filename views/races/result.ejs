@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>レース結果 - <%= race.race_name %></title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+.container { max-width: 1200px; margin: 0 auto; }
+.header { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+.header h1 { color: #333; margin-bottom: 10px; }
+.back-link { display: inline-block; margin-top: 10px; color: #667eea; text-decoration: none; }
+.back-link:hover { text-decoration: underline; }
+.section { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+.section h2 { color: #333; margin-bottom: 15px; border-bottom: 2px solid #667eea; padding-bottom: 10px; }
+table { width: 100%; border-collapse: collapse; }
+th { background: #667eea; color: white; padding: 12px; text-align: left; }
+td { padding: 12px; border-bottom: 1px solid #eee; }
+tr:hover { background: #f5f5f5; }
+.rank-1 { background: #ffd700 !important; font-weight: bold; }
+.rank-2 { background: #c0c0c0 !important; }
+.rank-3 { background: #cd7f32 !important; }
+.payout-item { display: flex; justify-content: space-between; padding: 10px; background: #f5f5f5; margin-bottom: 5px; border-radius: 5px; }
+.btn { padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; }
+.btn:hover { background: #5568d3; }
+.btn-success { background: #4caf50; }
+.btn-success:hover { background: #45a049; }
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+<h1>🏁 <%= race.race_name %> - レース結果</h1>
+<p>📅 <%= new Date(race.race_date).toLocaleDateString('ja-JP') %> | 📍 <%= race.venue %></p>
+<a href="/races/<%= race.race_id %>" class="back-link">← 出馬表に戻る</a>
+<a href="/races" class="back-link">← レース一覧</a>
+</div>
+<div class="section">
+<h2>🏆 着順</h2>
+<% if (results.length === 0) { %>
+<p style="color: #888;">まだ結果が登録されていません</p>
+<% } else { %>
+<table>
+<thead>
+<tr><th>着順</th><th>馬番</th><th>馬名</th><th>騎手</th><th>タイム</th></tr>
+</thead>
+<tbody>
+<% results.forEach(result => { %>
+<tr class="<%= result.rank <= 3 ? `rank-${result.rank}` : '' %>">
+<td><strong><%= result.rank %></strong></td>
+<td><%= result.umaban %></td>
+<td><%= result.horse_name %></td>
+<td><%= result.jockey %></td>
+<td><%= result.result_time || '-' %></td>
+</tr>
+<% }); %>
+</tbody>
+</table>
+<% } %>
+</div>
+<div class="section">
+<h2>💰 払戻金</h2>
+<% if (payouts.length === 0) { %>
+<p style="color: #888;">まだ払戻金が登録されていません</p>
+<% } else { %>
+<% const betTypeNames = { 'tansho': '単勝', 'fukusho': '複勝', 'umaren': '馬連', 'umatan': '馬単', 'wide': 'ワイド', 'sanrenpuku': '3連複', 'sanrentan': '3連単' }; %>
+<% let currentType = ''; %>
+<% payouts.forEach(payout => { %>
+<% if (currentType !== payout.bet_type) { %>
+<% if (currentType) { %></div><% } %>
+<h3 style="margin-top: 15px; color: #667eea;"><%= betTypeNames[payout.bet_type] %></h3>
+<div>
+<% currentType = payout.bet_type; %>
+<% } %>
+<div class="payout-item">
+<span><strong><%= payout.combination %></strong></span>
+<span><%= payout.payout.toLocaleString() %>円</span>
+</div>
+<% }); %>
+<% if (currentType) { %></div><% } %>
+<% } %>
+</div>
+
+<div class="section">
+<h2>🎫 購入済み馬券一覧</h2>
+<% if (allBets.length === 0) { %>
+<p style="color: #888;">まだ馬券が購入されていません</p>
+<% } else { %>
+<% const betTypeNames = { 'tansho': '単勝', 'fukusho': '複勝', 'umaren': '馬連', 'umatan': '馬単', 'wide': 'ワイド', 'sanrenpuku': '3連複', 'sanrentan': '3連単' }; %>
+<% const userBets = {}; %>
+<% allBets.forEach(bet => { %>
+    <% if (!userBets[bet.display_name]) userBets[bet.display_name] = []; %>
+    <% userBets[bet.display_name].push(bet); %>
+<% }); %>
+
+<% Object.keys(userBets).forEach(userName => { %>
+    <% let userTotalBet = 0, userTotalPayout = 0, userHitCount = 0; %>
+    <% userBets[userName].forEach(bet => { %>
+        <% userTotalBet += bet.amount; %>
+        <% userTotalPayout += bet.payout_amount || 0; %>
+        <% if (bet.payout_amount && bet.payout_amount > 0) userHitCount++; %>
+    <% }); %>
+    <% const userProfit = userTotalPayout - userTotalBet; %>
+    
+    <div style="margin-bottom: 20px; border: 2px solid <%= userProfit >= 0 ? '#4caf50' : '#f44336' %>; border-radius: 8px; padding: 15px; background: #f9f9f9;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+            <h3 style="color: #667eea; margin: 0;">👤 <%= userName %></h3>
+            <div style="text-align: right;">
+                <div style="font-size: 12px; color: #888;">的中率: <%= userBets[userName].length > 0 ? (userHitCount * 100 / userBets[userName].length).toFixed(1) : 0 %>%（<%= userHitCount %>/<%= userBets[userName].length %>）</div>
+                <div style="font-size: 18px; font-weight: bold; color: <%= userProfit >= 0 ? '#4caf50' : '#f44336' %>;">
+                    収支: <%= userProfit >= 0 ? '+' : '' %><%= userProfit.toLocaleString() %>円
+                </div>
+            </div>
+        </div>
+        
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background: white;">
+                    <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">馬券種別</th>
+                    <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">馬番</th>
+                    <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">金額</th>
+                    <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">結果</th>
+                    <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">配当</th>
+                    <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">収支</th>
+                </tr>
+            </thead>
+            <tbody>
+                <% userBets[userName].forEach(bet => { %>
+                    <% const isHit = bet.payout_amount && bet.payout_amount > 0; %>
+                    <% const profit = bet.payout_amount ? bet.payout_amount - bet.amount : -bet.amount; %>
+                    <tr style="background: <%= isHit ? '#e8f5e9' : bet.payout_amount !== null ? '#ffebee' : 'white' %>;">
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;"><%= betTypeNames[bet.bet_type] %></td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong><%= bet.horses %></strong></td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;"><%= bet.amount.toLocaleString() %>円</td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">
+                            <% if (bet.payout_amount === null) { %>
+                            <span style="color: #888;">未確定</span>
+                            <% } else if (isHit) { %>
+                            <span style="color: #4caf50; font-weight: bold;">✅ 的中</span>
+                            <% } else { %>
+                            <span style="color: #f44336;">❌</span>
+                            <% } %>
+                        </td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;">
+                            <% if (bet.payout_amount !== null) { %>
+                            <%= parseInt(bet.payout_amount).toLocaleString() %>円
+                            <% } else { %>
+                            -
+                            <% } %>
+                        </td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee; color: <%= profit >= 0 ? '#4caf50' : '#f44336' %>; font-weight: bold;">
+                            <% if (bet.payout_amount !== null) { %>
+                            <%= profit >= 0 ? '+' : '' %><%= profit.toLocaleString() %>円
+                            <% } else { %>
+                            -
+                            <% } %>
+                        </td>
+                    </tr>
+                <% }); %>
+            </tbody>
+        </table>
+    </div>
+<% }); %>
+<% } %>
+</div>
+
+<div class="section">
+<h2>🎯 配当計算</h2>
+<p>このレースの全ユーザーの馬券に対して払戻金を自動計算します。</p>
+<button id="calculate-btn" class="btn btn-success" style="margin-top: 15px;">配当を計算する</button>
+<div id="result-message" style="margin-top: 15px;"></div>
+</div>
+
+</div>
+<script>
+document.getElementById('calculate-btn').addEventListener('click', async () => {
+if (!confirm('配当を計算しますか？既に計算済みの場合は再計算されます。')) return;
+const btn = document.getElementById('calculate-btn');
+const msg = document.getElementById('result-message');
+btn.disabled = true;
+btn.textContent = '計算中...';
+msg.textContent = '';
+try {
+const response = await fetch('/races/<%= race.race_id %>/calculate-payouts', {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' }
+});
+const result = await response.json();
+if (result.success) {
+msg.innerHTML = `<div style="color: #4caf50; font-weight: bold;">✅ 配当計算完了: ${result.calculated}件的中 / ${result.total}件</div>`;
+} else {
+msg.innerHTML = `<div style="color: #f44336;">エラーが発生しました</div>`;
+}
+} catch (error) {
+msg.innerHTML = `<div style="color: #f44336;">エラーが発生しました</div>`;
+} finally {
+btn.disabled = false;
+btn.textContent = '配当を計算する';
+}
+});
+</script>
+</body>
+</html>

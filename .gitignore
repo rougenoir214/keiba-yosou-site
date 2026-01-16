@@ -1,0 +1,36 @@
+# 依存関係
+node_modules/
+package-lock.json
+
+# 環境変数
+.env
+.env.local
+.env.production
+
+# アップロードファイル
+uploads/
+*.csv
+
+# ログ
+*.log
+npm-debug.log*
+
+# OS固有
+.DS_Store
+Thumbs.db
+
+# エディタ
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 一時ファイル
+*.tmp
+temp/
+
+# スクリプト実行用の一時ファイル
+add_payout_constraint.js
+update_seasons.js
+cleanup_seasons.js

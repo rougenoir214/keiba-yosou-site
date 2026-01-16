@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><%= race.race_name %> - 出馬表</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .header h1 { color: #333; margin-bottom: 10px; }
+        .race-details {
+            display: flex;
+            gap: 20px;
+            color: #666;
+            margin-top: 10px;
+        }
+        .back-link {
+            display: inline-block;
+            margin-top: 15px;
+            color: #667eea;
+            text-decoration: none;
+        }
+        .back-link:hover { text-decoration: underline; }
+        .shutuba-table {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        tr:hover {
+            background: #f5f5f5;
+        }
+        .waku {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+        }
+        .waku-1 { background: white; color: #333; border: 2px solid #333; }
+        .waku-2 { background: black; }
+        .waku-3 { background: red; }
+        .waku-4 { background: blue; }
+        .waku-5 { background: yellow; color: #333; }
+        .waku-6 { background: green; }
+        .waku-7 { background: orange; }
+        .waku-8 { background: pink; color: #333; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏇 <%= race.race_name %></h1>
+            <div class="race-details">
+                <span>📅 <%= new Date(race.race_date).toLocaleDateString('ja-JP') %></span>
+                <span>🕒 <%= race.race_time %></span>
+                <span>📍 <%= race.venue %></span>
+            </div>
+            <a href="/predictions/<%= race.race_id %>" class="btn" style="margin-top: 15px; display: inline-block; padding: 10px 20px; background: #4caf50; color: white; text-decoration: none; border-radius: 5px;">📝 予想を入力</a>
+            <a href="/races" class="back-link">← レース一覧に戻る</a>
+        </div>
+
+        <div class="shutuba-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>枠</th>
+                        <th>馬番</th>
+                        <th>馬名</th>
+                        <th>性齢</th>
+                        <th>斤量</th>
+                        <th>騎手</th>
+                        <th>厩舎</th>
+                        <th>馬体重</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% horses.forEach(horse => { %>
+                        <tr>
+                            <td>
+                                <div class="waku waku-<%= horse.waku %>">
+                                    <%= horse.waku %>
+                                </div>
+                            </td>
+                            <td><strong><%= horse.umaban %></strong></td>
+                            <td><strong><%= horse.horse_name %></strong></td>
+                            <td><%= horse.age_sex %></td>
+                            <td><%= horse.weight_load %>kg</td>
+                            <td><%= horse.jockey %></td>
+                            <td><%= horse.stable %></td>
+                            <td><%= horse.horse_weight || '-' %></td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+            </table>
+        </div>
+
+        <% if (user && allBets && allBets.length > 0) { %>
+        <div class="shutuba-table" style="margin-top: 20px;">
+            <h2 style="padding: 20px; margin: 0; background: #667eea; color: white;">🎫 購入済み馬券一覧</h2>
+            <div style="padding: 20px;">
+                <% const betTypeNames = { 'tansho': '単勝', 'fukusho': '複勝', 'umaren': '馬連', 'umatan': '馬単', 'wide': 'ワイド', 'sanrenpuku': '3連複', 'sanrentan': '3連単' }; %>
+                <% const userBets = {}; %>
+                <% allBets.forEach(bet => { %>
+                    <% if (!userBets[bet.display_name]) userBets[bet.display_name] = []; %>
+                    <% userBets[bet.display_name].push(bet); %>
+                <% }); %>
+                
+                <% Object.keys(userBets).forEach(userName => { %>
+                    <div style="margin-bottom: 20px; border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; background: #f9f9f9;">
+                        <h3 style="color: #667eea; margin-bottom: 10px;">👤 <%= userName %></h3>
+                        <table style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="background: white;">
+                                    <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">馬券種別</th>
+                                    <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">馬番</th>
+                                    <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">金額</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% let userTotal = 0; %>
+                                <% userBets[userName].forEach(bet => { %>
+                                    <% userTotal += bet.amount; %>
+                                    <tr style="background: white;">
+                                        <td style="padding: 8px; border-bottom: 1px solid #eee;"><%= betTypeNames[bet.bet_type] %></td>
+                                        <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong><%= bet.horses %></strong></td>
+                                        <td style="padding: 8px; border-bottom: 1px solid #eee;"><%= bet.amount.toLocaleString() %>円</td>
+                                    </tr>
+                                <% }); %>
+                                <tr style="background: white; font-weight: bold;">
+                                    <td style="padding: 8px; border-top: 2px solid #667eea;" colspan="2">合計</td>
+                                    <td style="padding: 8px; border-top: 2px solid #667eea;"><%= userTotal.toLocaleString() %>円</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                <% }); %>
+            </div>
+        </div>
+        <% } %>
+    </div>
+</body>
+</html>

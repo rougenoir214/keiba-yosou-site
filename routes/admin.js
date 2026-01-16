@@ -1,0 +1,245 @@
+const express = require('express');
+const router = express.Router();
+const multer = require('multer');
+const csv = require('csv-parser');
+const fs = require('fs');
+const pool = require('../db/connection');
+
+// アップロード設定
+const upload = multer({ dest: 'uploads/' });
+
+// CSVインポートページ
+router.get('/import', (req, res) => {
+  res.render('import');
+});
+
+// CSVアップロード処理
+router.post('/import', upload.single('csvfile'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).send('ファイルがアップロードされていません');
+  }
+
+  const results = [];
+  const races = new Map();
+
+  // CSVを読み込み
+  fs.createReadStream(req.file.path)
+    .pipe(csv())
+    .on('data', (data) => results.push(data))
+    .on('end', async () => {
+      try {
+        // BOM除去用のヘルパー関数
+        const normalizeKey = (key) => key.replace(/^\uFEFF/, '').trim();
+        const getValue = (obj, key) => {
+          for (const [k, v] of Object.entries(obj)) {
+            if (normalizeKey(k) === key) return v;
+          }
+          return null;
+        };
+        
+        // レース情報をグループ化
+        results.forEach(row => {
+          const raceId = getValue(row, 'race_id');
+          if (!raceId) {
+            console.error('race_idが見つかりません:', row);
+            return;
+          }
+          if (!races.has(raceId)) {
+            races.set(raceId, []);
+          }
+          races.get(raceId).push(row);
+        });
+
+        // データベースに保存
+        for (const [raceId, horses] of races) {
+          // レース情報を保存（CSVからレース名と競馬場を取得）
+          const firstHorse = horses[0];
+          
+          console.log('=== レース情報デバッグ ===');
+          console.log('raceId:', raceId);
+          console.log('firstHorseのキー:', Object.keys(firstHorse));
+          
+          const raceName = getValue(firstHorse, 'レース名') || `レース${raceId}`;
+          const venue = getValue(firstHorse, '競馬場') || '未設定';
+          
+          console.log('取得したレース名:', raceName);
+          console.log('取得した競馬場:', venue);
+          console.log('=======================');
+          
+          await pool.query(
+            `INSERT INTO races (race_id, race_name, race_date, race_time, venue) 
+             VALUES ($1, $2, $3, $4, $5) 
+             ON CONFLICT (race_id) DO UPDATE SET
+               race_name = EXCLUDED.race_name,
+               venue = EXCLUDED.venue`,
+            [raceId, raceName, new Date(), '15:00', venue]
+          );
+
+          // 出走馬情報を保存
+          for (const horse of horses) {
+            // デバッグ: CSVヘッダーを確認
+            console.log('CSVの列名:', Object.keys(horse));
+            console.log('馬データ:', horse);
+            
+            const waku = parseInt(getValue(horse, '枠番'));
+            const umaban = parseInt(getValue(horse, '馬番'));
+            const weight = parseFloat(getValue(horse, '斤量'));
+            
+            if (isNaN(waku) || isNaN(umaban)) {
+              console.error('エラー: 枠番または馬番が不正です', horse);
+              continue; // スキップ
+            }
+            
+            await pool.query(
+              `INSERT INTO horses (race_id, waku, umaban, horse_name, age_sex, weight_load, jockey, stable, horse_weight)
+               VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+               ON CONFLICT (race_id, umaban) DO UPDATE SET
+                 horse_name = EXCLUDED.horse_name,
+                 age_sex = EXCLUDED.age_sex,
+                 weight_load = EXCLUDED.weight_load,
+                 jockey = EXCLUDED.jockey,
+                 stable = EXCLUDED.stable,
+                 horse_weight = EXCLUDED.horse_weight`,
+              [
+                raceId,
+                waku,
+                umaban,
+                getValue(horse, '馬名'),
+                getValue(horse, '性齢'),
+                isNaN(weight) ? 0 : weight,
+                getValue(horse, '騎手'),
+                getValue(horse, '厩舎'),
+                getValue(horse, '馬体重') || ''
+              ]
+            );
+          }
+        }
+
+        // 一時ファイル削除
+        fs.unlinkSync(req.file.path);
+
+        res.send(`成功: ${races.size}レース、${results.length}頭のデータをインポートしました`);
+      } catch (error) {
+        console.error(error);
+        res.status(500).send('エラーが発生しました: ' + error.message);
+      }
+    });
+});
+
+module.exports = router;
+// 結果インポートページ
+router.get('/import-results', (req, res) => {
+  res.render('import-results');
+});
+
+// 結果CSVアップロード処理
+router.post('/import-results', upload.single('resultsfile'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).send('ファイルがアップロードされていません');
+  }
+
+  const results = [];
+
+  fs.createReadStream(req.file.path)
+    .pipe(csv())
+    .on('data', (data) => results.push(data))
+    .on('end', async () => {
+      try {
+        const getValue = (obj, key) => {
+          for (const [k, v] of Object.entries(obj)) {
+            const cleanKey = k.replace(/^\uFEFF/, '').trim();
+            if (cleanKey === key) return v;
+          }
+          return null;
+        };
+
+        let successCount = 0;
+
+        for (const row of results) {
+          const raceId = getValue(row, 'race_id');
+          const rank = parseInt(getValue(row, '着順'));
+          const umaban = parseInt(getValue(row, '馬番'));
+          const resultTime = getValue(row, 'タイム') || '';
+
+          if (!raceId || isNaN(rank) || isNaN(umaban)) {
+            console.error('無効なデータ:', row);
+            continue;
+          }
+
+          await pool.query(
+            `INSERT INTO results (race_id, umaban, rank, result_time)
+             VALUES ($1, $2, $3, $4)
+             ON CONFLICT (race_id, umaban) DO UPDATE SET
+               rank = EXCLUDED.rank,
+               result_time = EXCLUDED.result_time,
+               updated_at = CURRENT_TIMESTAMP`,
+            [raceId, umaban, rank, resultTime]
+          );
+
+          successCount++;
+        }
+
+        fs.unlinkSync(req.file.path);
+        res.send(`成功: ${successCount}件のレース結果をインポートしました`);
+      } catch (error) {
+        console.error(error);
+        res.status(500).send('エラーが発生しました: ' + error.message);
+      }
+    });
+});
+
+// 払戻金CSVアップロード処理
+router.post('/import-payouts', upload.single('payoutsfile'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).send('ファイルがアップロードされていません');
+  }
+
+  const results = [];
+
+  fs.createReadStream(req.file.path)
+    .pipe(csv())
+    .on('data', (data) => results.push(data))
+    .on('end', async () => {
+      try {
+        const getValue = (obj, key) => {
+          for (const [k, v] of Object.entries(obj)) {
+            const cleanKey = k.replace(/^\uFEFF/, '').trim();
+            if (cleanKey === key) return v;
+          }
+          return null;
+        };
+
+        let successCount = 0;
+
+        for (const row of results) {
+          const raceId = getValue(row, 'race_id');
+          const betType = getValue(row, '馬券種別');
+          const combination = getValue(row, '組み合わせ');
+          const payout = parseInt(getValue(row, '払戻金'));
+
+          if (!raceId || !betType || !combination || isNaN(payout)) {
+            console.error('無効なデータ:', row);
+            continue;
+          }
+
+          await pool.query(
+            `INSERT INTO race_payouts (race_id, bet_type, combination, payout)
+             VALUES ($1, $2, $3, $4)
+             ON CONFLICT (race_id, bet_type, combination) DO UPDATE SET
+               payout = EXCLUDED.payout`,
+            [raceId, betType, combination, payout]
+          );
+
+          successCount++;
+        }
+
+        fs.unlinkSync(req.file.path);
+        res.send(`成功: ${successCount}件の払戻金をインポートしました`);
+      } catch (error) {
+        console.error(error);
+        res.status(500).send('エラーが発生しました: ' + error.message);
+      }
+    });
+});
+
+module.exports = router;

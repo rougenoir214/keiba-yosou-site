@@ -1,0 +1,69 @@
+const express = require('express');
+const router = express.Router();
+const pool = require('../db/connection');
+
+// ランキングページ
+router.get('/', async (req, res) => {
+  try {
+    // シーズン一覧を取得
+    const seasonsResult = await pool.query('SELECT * FROM seasons ORDER BY start_date DESC');
+    
+    // 選択されたシーズン（デフォルトはアクティブなシーズン）
+    const selectedSeasonId = req.query.season_id || null;
+    let selectedSeason = null;
+    
+    if (selectedSeasonId) {
+      const seasonResult = await pool.query('SELECT * FROM seasons WHERE id = $1', [selectedSeasonId]);
+      selectedSeason = seasonResult.rows[0];
+    } else {
+      const activeSeasonResult = await pool.query('SELECT * FROM seasons WHERE is_active = true LIMIT 1');
+      selectedSeason = activeSeasonResult.rows[0];
+    }
+    
+    // ユーザー別の統計を計算
+    const rankingQuery = `
+      SELECT 
+        u.id,
+        u.display_name,
+        COUNT(DISTINCT b.race_id) as race_count,
+        COUNT(b.id) as bet_count,
+        SUM(b.amount) as total_bet,
+        COALESCE(SUM(p.payout_amount), 0) as total_payout,
+        COALESCE(SUM(p.payout_amount), 0) - SUM(b.amount) as profit,
+        COUNT(CASE WHEN p.payout_amount > 0 THEN 1 END) as hit_count,
+        CASE 
+          WHEN COUNT(b.id) > 0 
+          THEN CAST(COUNT(CASE WHEN p.payout_amount > 0 THEN 1 END) * 100.0 / COUNT(b.id) AS NUMERIC(10,1))
+          ELSE 0 
+        END as hit_rate,
+        CASE 
+          WHEN SUM(b.amount) > 0 
+          THEN CAST(COALESCE(SUM(p.payout_amount), 0) * 100.0 / SUM(b.amount) AS NUMERIC(10,1))
+          ELSE 0 
+        END as recovery_rate
+      FROM users u
+      LEFT JOIN bets b ON u.id = b.user_id
+      LEFT JOIN payouts p ON b.id = p.bet_id
+      LEFT JOIN races r ON b.race_id = r.race_id
+      WHERE b.id IS NOT NULL
+      ${selectedSeason ? 'AND r.race_date BETWEEN $1 AND $2' : ''}
+      GROUP BY u.id, u.display_name
+      ORDER BY profit DESC
+    `;
+    
+    const params = selectedSeason ? [selectedSeason.start_date, selectedSeason.end_date] : [];
+    const rankingResult = await pool.query(rankingQuery, params);
+    
+    res.render('ranking/index', {
+      seasons: seasonsResult.rows,
+      selectedSeason: selectedSeason,
+      rankings: rankingResult.rows,
+      user: req.session.user
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('エラーが発生しました');
+  }
+});
+
+module.exports = router;

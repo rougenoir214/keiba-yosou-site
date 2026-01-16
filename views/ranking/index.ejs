@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ランキング - 競馬予想共有サイト</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+.container { max-width: 1200px; margin: 0 auto; }
+.header { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+.header h1 { color: #333; margin-bottom: 10px; }
+.season-selector { margin-top: 15px; }
+.season-selector select { padding: 8px; border: 2px solid #e0e0e0; border-radius: 5px; font-size: 14px; }
+.back-link { display: inline-block; margin-top: 10px; color: #667eea; text-decoration: none; }
+.back-link:hover { text-decoration: underline; }
+.section { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+.section h2 { color: #333; margin-bottom: 15px; border-bottom: 2px solid #667eea; padding-bottom: 10px; }
+table { width: 100%; border-collapse: collapse; }
+th { background: #667eea; color: white; padding: 12px; text-align: left; }
+td { padding: 12px; border-bottom: 1px solid #eee; }
+tr:hover { background: #f5f5f5; }
+.rank-1 { background: #ffd700 !important; font-weight: bold; }
+.rank-2 { background: #c0c0c0 !important; }
+.rank-3 { background: #cd7f32 !important; }
+.profit-positive { color: #4caf50; font-weight: bold; }
+.profit-negative { color: #f44336; font-weight: bold; }
+.stat-card { display: inline-block; padding: 15px 20px; background: #f5f5f5; border-radius: 8px; margin-right: 15px; margin-bottom: 10px; }
+.stat-card .label { font-size: 12px; color: #888; }
+.stat-card .value { font-size: 24px; font-weight: bold; color: #667eea; margin-top: 5px; }
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+<h1>🏆 ランキング</h1>
+<div class="season-selector">
+<label for="season">シーズン選択：</label>
+<select id="season" onchange="location.href='/ranking?season_id='+this.value">
+<% seasons.forEach(season => { %>
+<option value="<%= season.id %>" <%= selectedSeason && selectedSeason.id === season.id ? 'selected' : '' %>>
+<%= season.name %>
+</option>
+<% }); %>
+</select>
+</div>
+<a href="/" class="back-link">← トップページ</a>
+<a href="/races" class="back-link">← レース一覧</a>
+</div>
+<% if (selectedSeason) { %>
+<div class="section">
+<h2>📊 全体統計</h2>
+<% const totalBet = rankings.reduce((sum, r) => sum + parseInt(r.total_bet || 0), 0); %>
+<% const totalPayout = rankings.reduce((sum, r) => sum + parseInt(r.total_payout || 0), 0); %>
+<% const totalProfit = totalPayout - totalBet; %>
+<% const avgRecoveryRate = rankings.length > 0 ? (rankings.reduce((sum, r) => sum + parseFloat(r.recovery_rate || 0), 0) / rankings.length).toFixed(1) : 0; %>
+<div class="stat-card">
+<div class="label">購入総額</div>
+<div class="value"><%= totalBet.toLocaleString() %>円</div>
+</div>
+<div class="stat-card">
+<div class="label">払戻総額</div>
+<div class="value"><%= totalPayout.toLocaleString() %>円</div>
+</div>
+<div class="stat-card">
+<div class="label">収支</div>
+<div class="value <%= totalProfit >= 0 ? 'profit-positive' : 'profit-negative' %>"><%= totalProfit >= 0 ? '+' : '' %><%= totalProfit.toLocaleString() %>円</div>
+</div>
+<div class="stat-card">
+<div class="label">平均回収率</div>
+<div class="value"><%= avgRecoveryRate %>%</div>
+</div>
+</div>
+<div class="section">
+<h2>🎖️ ユーザーランキング</h2>
+<% if (rankings.length === 0) { %>
+<p style="color: #888;">まだデータがありません</p>
+<% } else { %>
+<table>
+<thead>
+<tr>
+<th>順位</th>
+<th>ユーザー</th>
+<th>レース数</th>
+<th>購入点数</th>
+<th>購入額</th>
+<th>払戻額</th>
+<th>収支</th>
+<th>的中率</th>
+<th>回収率</th>
+</tr>
+</thead>
+<tbody>
+<% rankings.forEach((rank, index) => { %>
+<tr class="<%= index < 3 ? `rank-${index + 1}` : '' %>">
+<td><strong><%= index + 1 %></strong></td>
+<td><%= rank.display_name %></td>
+<td><%= rank.race_count %></td>
+<td><%= rank.bet_count %></td>
+<td><%= parseInt(rank.total_bet).toLocaleString() %>円</td>
+<td><%= parseInt(rank.total_payout).toLocaleString() %>円</td>
+<td class="<%= parseInt(rank.profit) >= 0 ? 'profit-positive' : 'profit-negative' %>">
+<%= parseInt(rank.profit) >= 0 ? '+' : '' %><%= parseInt(rank.profit).toLocaleString() %>円
+</td>
+<td><%= rank.hit_rate %>%（<%= rank.hit_count %>/<%= rank.bet_count %>）</td>
+<td><%= rank.recovery_rate %>%</td>
+</tr>
+<% }); %>
+</tbody>
+</table>
+<% } %>
+</div>
+<% } %>
+</div>
+</body>
+</html>

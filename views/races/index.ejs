@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>レース一覧 - 競馬予想共有サイト</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .nav-links {
+            margin-top: 15px;
+        }
+        .nav-links a {
+            display: inline-block;
+            margin-right: 15px;
+            color: #667eea;
+            text-decoration: none;
+        }
+        .nav-links a:hover {
+            text-decoration: underline;
+        }
+        .race-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .race-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 7px 20px rgba(0,0,0,0.15);
+        }
+        .race-card h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .race-info {
+            display: flex;
+            justify-content: space-between;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        .race-info span {
+            margin-right: 20px;
+        }
+        .btn {
+            display: inline-block;
+            padding: 8px 20px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        .btn:hover {
+            background: #5568d3;
+        }
+        .empty-state {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            text-align: center;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏇 レース一覧</h1>
+            <div class="nav-links">
+                <a href="/">← トップページ</a>
+                <a href="/ranking">ランキング</a>
+                <a href="/admin/import">データインポート</a>
+                <a href="/admin/import-results">結果インポート</a>
+            </div>
+        </div>
+
+        <% if (races.length === 0) { %>
+            <div class="empty-state">
+                <h2>レースがまだ登録されていません</h2>
+                <p>CSVインポート機能を使ってレースデータを登録してください</p>
+            </div>
+        <% } else { %>
+            <% races.forEach(race => { %>
+                <div class="race-card">
+                    <h3><%= race.race_name %></h3>
+                    <div class="race-info">
+                        <span>📅 <%= new Date(race.race_date).toLocaleDateString('ja-JP') %></span>
+                        <span>🕒 <%= race.race_time %></span>
+                        <span>📍 <%= race.venue %></span>
+                        <span>🐴 <%= race.horse_count %>頭立て</span>
+                    </div>
+                    <a href="/races/<%= race.race_id %>" class="btn">出馬表を見る</a>
+                    <a href="/races/<%= race.race_id %>/result" class="btn" style="background: #4caf50;">結果を見る</a>
+                </div>
+            <% }); %>
+        <% } %>
+    </div>
+</body>
+</html>
