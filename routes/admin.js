@@ -278,4 +278,225 @@ router.post('/update-race-times', async (req, res) => {
   }
 });
 
+// netkeibaからレース結果を自動取得
+router.post('/fetch-result/:race_id', async (req, res) => {
+  const axios = require('axios');
+  const cheerio = require('cheerio');
+  const { race_id } = req.params;
+  
+  try {
+    // netkeibaのURLを構築
+    const url = `https://race.netkeiba.com/race/result.html?race_id=${race_id}`;
+    console.log('Fetching from:', url);
+    
+    // HTMLを取得
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+    
+    // HTMLをパース
+    const $ = cheerio.load(response.data);
+    
+    // 結果テーブルを取得（複数のセレクタを試す）
+    let $table = $('.RaceTable01 tbody tr');
+    if ($table.length === 0) {
+      $table = $('.Result_Table_01 tbody tr');
+    }
+    if ($table.length === 0) {
+      $table = $('.Shutuba_Table tbody tr');
+    }
+    
+    // 結果テーブルを取得
+    const results = [];
+    $table.each((index, element) => {
+      const $row = $(element);
+      
+      // 着順（1列目）
+      const rankText = $row.find('td:nth-child(1)').text().trim();
+      const rank = parseInt(rankText);
+      
+      // 馬番（3列目）※2列目は枠番
+      const umaban = parseInt($row.find('td:nth-child(3)').text().trim());
+      
+      // タイム（8列目）
+      const timeText = $row.find('td:nth-child(8)').text().trim();
+      
+      if (!isNaN(rank) && !isNaN(umaban)) {
+        results.push({
+          rank: rank,
+          umaban: umaban,
+          result_time: timeText || null
+        });
+      }
+    });
+    
+    if (results.length === 0) {
+      return res.status(404).send('レース結果が見つかりませんでした。race_idを確認してください。');
+    }
+    
+    console.log('取得した結果:', results.length, '頭');
+    
+    // 重複チェック：同じ馬番は1回だけ
+    const uniqueResults = [];
+    const seenUmaban = new Set();
+    
+    for (const result of results) {
+      if (!seenUmaban.has(result.umaban)) {
+        uniqueResults.push(result);
+        seenUmaban.add(result.umaban);
+      } else {
+        console.warn(`重複した馬番をスキップ: 馬番${result.umaban} (着順${result.rank})`);
+      }
+    }
+    
+    console.log('重複除去後:', uniqueResults.length, '頭');
+    
+    // データベースに保存（既存データは削除）
+    await pool.query('DELETE FROM results WHERE race_id = $1', [race_id]);
+    
+    for (const result of uniqueResults) {
+      await pool.query(
+        'INSERT INTO results (race_id, umaban, rank, result_time) VALUES ($1, $2, $3, $4) ON CONFLICT (race_id, umaban) DO UPDATE SET rank = EXCLUDED.rank, result_time = EXCLUDED.result_time',
+        [race_id, result.umaban, result.rank, result.result_time]
+      );
+    }
+    
+    res.send(`成功: ${uniqueResults.length}頭の結果を取得しました`);
+    
+  } catch (error) {
+    console.error('Error fetching results:', error.message);
+    res.status(500).send('エラーが発生しました: ' + error.message);
+  }
+});
+
+// netkeibaからレース情報と出走馬を自動取得・登録
+router.post('/fetch-race/:race_id', async (req, res) => {
+  const axios = require('axios');
+  const cheerio = require('cheerio');
+  const { race_id } = req.params;
+  
+  try {
+    // netkeibaのURLを構築（出馬表ページ）
+    const url = `https://race.netkeiba.com/race/shutuba.html?race_id=${race_id}`;
+    console.log('Fetching race data from:', url);
+    
+    // HTMLを取得
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+      }
+    });
+    
+    // HTMLをパース
+    const $ = cheerio.load(response.data);
+    
+    // レース名を取得
+    const raceName = $('.RaceName').text().trim() || 
+                     $('h1').first().text().trim() ||
+                     'レース名取得失敗';
+    
+    // 開催日を取得（race_idから抽出）
+    const year = race_id.substring(0, 4);
+    const month = race_id.substring(4, 6);
+    const day = race_id.substring(8, 10);
+    const raceDate = `${year}-${month}-${day}`;
+    
+    // 競馬場を取得（race_idから判定）
+    const venueCode = race_id.substring(6, 8);
+    const venueMap = {
+      '01': '札幌', '02': '函館', '03': '福島', '04': '新潟',
+      '05': '東京', '06': '中山', '07': '中京', '08': '京都',
+      '09': '阪神', '10': '小倉'
+    };
+    const venue = venueMap[venueCode] || '不明';
+    
+    console.log('レース情報:', { raceName, raceDate, venue });
+    
+    // 出走馬テーブルを取得
+    const horses = [];
+    $('.Shutuba_Table tbody tr, .RaceTable01 tbody tr').each((index, element) => {
+      const $row = $(element);
+      
+      // 枠番（1列目）
+      const waku = parseInt($row.find('td:nth-child(1)').text().trim());
+      
+      // 馬番（2列目）
+      const umaban = parseInt($row.find('td:nth-child(2)').text().trim());
+      
+      // 馬名（3列目のリンク）
+      const horseName = $row.find('td:nth-child(3) a').text().trim() ||
+                        $row.find('td:nth-child(3)').text().trim();
+      
+      // 性齢（4列目）
+      const sexAge = $row.find('td:nth-child(4)').text().trim();
+      
+      // 斤量（5列目）
+      const weight = $row.find('td:nth-child(5)').text().trim();
+      
+      // 騎手（6列目）
+      const jockey = $row.find('td:nth-child(6) a').text().trim() ||
+                     $row.find('td:nth-child(6)').text().trim();
+      
+      // 厩舎（7列目）
+      const trainer = $row.find('td:nth-child(7) a').text().trim() ||
+                      $row.find('td:nth-child(7)').text().trim();
+      
+      // 馬体重（8列目）
+      const horseWeight = $row.find('td:nth-child(8)').text().trim();
+      
+      if (!isNaN(waku) && !isNaN(umaban) && horseName) {
+        horses.push({
+          waku,
+          umaban,
+          horse_name: horseName,
+          sex_age: sexAge,
+          weight,
+          jockey,
+          trainer,
+          horse_weight: horseWeight
+        });
+      }
+    });
+    
+    if (horses.length === 0) {
+      return res.status(404).send('出走馬情報が見つかりませんでした。race_idを確認してください。');
+    }
+    
+    console.log('取得した出走馬:', horses.length, '頭');
+    
+    // データベースに保存
+    // レース情報を保存
+    await pool.query(
+      `INSERT INTO races (race_id, race_name, race_date, race_time, venue) 
+       VALUES ($1, $2, $3, $4, $5) 
+       ON CONFLICT (race_id) DO UPDATE SET
+         race_name = EXCLUDED.race_name,
+         race_date = EXCLUDED.race_date,
+         race_time = EXCLUDED.race_time,
+         venue = EXCLUDED.venue`,
+      [race_id, raceName, raceDate, '23:59', venue]
+    );
+    
+    // 既存の出走馬データを削除
+    await pool.query('DELETE FROM horses WHERE race_id = $1', [race_id]);
+    
+    // 出走馬を保存
+    for (const horse of horses) {
+      await pool.query(
+        `INSERT INTO horses (race_id, waku, umaban, horse_name, jockey, trainer) 
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [race_id, horse.waku, horse.umaban, horse.horse_name, horse.jockey, horse.trainer]
+      );
+    }
+    
+    res.send(`成功: ${raceName} (${horses.length}頭) を登録しました`);
+    
+  } catch (error) {
+    console.error('Error fetching race data:', error.message);
+    res.status(500).send('エラーが発生しました: ' + error.message);
+  }
+});
+
 module.exports = router;

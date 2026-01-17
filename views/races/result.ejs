@@ -6,26 +6,29 @@
 <title>レース結果 - <%= race.race_name %></title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); background-attachment: fixed; min-height: 100vh; padding: 20px; }
 .container { max-width: 1200px; margin: 0 auto; }
-.header { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-.header h1 { color: #333; margin-bottom: 10px; }
-.back-link { display: inline-block; margin-top: 10px; color: #667eea; text-decoration: none; }
-.back-link:hover { text-decoration: underline; }
-.section { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
-.section h2 { color: #333; margin-bottom: 15px; border-bottom: 2px solid #667eea; padding-bottom: 10px; }
+.header { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); padding: 30px; border-radius: 20px; margin-bottom: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.3); }
+.header h1 { color: #333; margin-bottom: 15px; font-size: 1.8rem; font-weight: 700; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.header p { color: #666; font-weight: 500; margin-top: 10px; }
+.back-link { display: inline-block; margin-top: 10px; margin-right: 15px; color: #667eea; text-decoration: none; font-weight: 600; transition: all 0.3s; padding: 5px 10px; border-radius: 5px; }
+.back-link:hover { background: rgba(102, 126, 234, 0.1); transform: translateX(-5px); }
+.section { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); padding: 30px; border-radius: 20px; margin-bottom: 30px; box-shadow: 0 8px 30px rgba(0,0,0,0.12); border: 1px solid rgba(255,255,255,0.3); }
+.section h2 { color: #333; margin-bottom: 20px; border-bottom: 3px solid transparent; border-image: linear-gradient(90deg, #667eea 0%, #764ba2 100%); border-image-slice: 1; padding-bottom: 12px; font-size: 1.5rem; font-weight: 700; }
 table { width: 100%; border-collapse: collapse; }
-th { background: #667eea; color: white; padding: 12px; text-align: left; }
+th { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 14px 12px; text-align: left; font-weight: 600; }
 td { padding: 12px; border-bottom: 1px solid #eee; }
 tr:hover { background: #f5f5f5; }
-.rank-1 { background: #ffd700 !important; font-weight: bold; }
-.rank-2 { background: #c0c0c0 !important; }
-.rank-3 { background: #cd7f32 !important; }
+.rank-1 { background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%) !important; font-weight: bold; }
+.rank-2 { background: linear-gradient(135deg, #c0c0c0 0%, #e0e0e0 100%) !important; font-weight: bold; }
+.rank-3 { background: linear-gradient(135deg, #cd7f32 0%, #e8a87c 100%) !important; font-weight: bold; }
+tr.no-rank { opacity: 0.5; background: #f9f9f9; }
+tr.no-rank td { color: #999; }
 .payout-item { display: flex; justify-content: space-between; padding: 10px; background: #f5f5f5; margin-bottom: 5px; border-radius: 5px; }
-.btn { padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; }
-.btn:hover { background: #5568d3; }
-.btn-success { background: #4caf50; }
-.btn-success:hover { background: #45a049; }
+.btn { padding: 12px 24px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; font-weight: 600; transition: all 0.3s; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4); }
+.btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6); }
+.btn-success { background: linear-gradient(135deg, #4caf50 0%, #45a049 100%); box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4); }
+.btn-success:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(76, 175, 80, 0.6); }
 
 /* スマホ対応 */
 @media (max-width: 768px) {
@@ -52,6 +55,11 @@ tr:hover { background: #f5f5f5; }
 <div class="header">
 <h1>🏁 <%= race.race_name %> - レース結果</h1>
 <p>📅 <%= new Date(race.race_date).toLocaleDateString('ja-JP') %> | 📍 <%= race.venue %></p>
+<div style="margin-top: 15px;">
+<button onclick="fetchResultFromNetkeiba()" class="btn" style="background: linear-gradient(135deg, #ff9800 0%, #ff5722 100%); box-shadow: 0 4px 15px rgba(255, 152, 0, 0.4);">
+🌐 netkeibaから結果を自動取得
+</button>
+</div>
 <a href="/races/<%= race.race_id %>" class="back-link">← 出馬表に戻る</a>
 <a href="/races" class="back-link">← レース一覧</a>
 </div>
@@ -81,9 +89,20 @@ predictions.forEach(p => {
 </thead>
 <tbody>
 <% results.forEach(result => { %>
-<tr class="<%= result.rank <= 3 ? `rank-${result.rank}` : '' %>">
-<td><strong><%= result.rank %></strong></td>
-<td><%= result.umaban %></td>
+<%
+// 着順があるかどうかで行のクラスを変更
+let rowClass = '';
+if (result.rank) {
+    if (result.rank <= 3) {
+        rowClass = `rank-${result.rank}`;
+    }
+} else {
+    rowClass = 'no-rank';
+}
+%>
+<tr class="<%= rowClass %>">
+<td><strong><%= result.rank || '-' %></strong></td>
+<td><strong><%= result.umaban %></strong></td>
 <td><%= result.horse_name %></td>
 <td><%= result.jockey %></td>
 <td><%= result.result_time || '-' %></td>
@@ -241,6 +260,31 @@ btn.disabled = false;
 btn.textContent = '配当を計算する';
 }
 });
+
+// netkeibaからレース結果を自動取得
+async function fetchResultFromNetkeiba() {
+    if (!confirm('netkeibaからレース結果を自動取得しますか？\n既存の結果データは上書きされます。')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch('/admin/fetch-result/<%= race.race_id %>', {
+            method: 'POST'
+        });
+        
+        const text = await response.text();
+        
+        if (response.ok) {
+            alert(text);
+            location.reload();
+        } else {
+            alert('エラー: ' + text);
+        }
+    } catch (error) {
+        console.error(error);
+        alert('エラーが発生しました: ' + error.message);
+    }
+}
 </script>
 </body>
 </html>

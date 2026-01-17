@@ -110,11 +110,55 @@
 
         <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
 
+        <h3 style="margin-bottom: 15px;">🌐 netkeibaから自動取得</h3>
+        <p style="margin-bottom: 15px; color: #666;">race_idを入力するだけでレース情報と出走馬を自動登録</p>
+        <div class="form-group">
+            <label for="race_id_input">race_id（例：202606010611）</label>
+            <input type="text" id="race_id_input" placeholder="202606010611" style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 5px; font-size: 16px;">
+        </div>
+        <button onclick="fetchRaceFromNetkeiba()" class="btn" style="background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);">
+            🐴 レースを自動登録
+        </button>
+
+        <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+
         <h3 style="margin-bottom: 15px;">⏰ レース時刻の一括更新</h3>
         <p style="margin-bottom: 15px; color: #666;">既存レースの時刻を15:00から23:59に更新します（購入期限を延長）</p>
         <button onclick="updateRaceTimes()" class="btn" style="background: #ff9800;">レース時刻を更新（15:00 → 23:59）</button>
 
         <script>
+        // netkeibaからレース情報を自動取得
+        async function fetchRaceFromNetkeiba() {
+            const raceId = document.getElementById('race_id_input').value.trim();
+            
+            if (!raceId) {
+                alert('race_idを入力してください');
+                return;
+            }
+            
+            if (!confirm(`race_id: ${raceId} のレース情報をnetkeibaから取得しますか？`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/admin/fetch-race/${raceId}`, {
+                    method: 'POST'
+                });
+                
+                const text = await response.text();
+                
+                if (response.ok) {
+                    alert(text);
+                    document.getElementById('race_id_input').value = '';
+                } else {
+                    alert('エラー: ' + text);
+                }
+            } catch (error) {
+                console.error(error);
+                alert('エラーが発生しました: ' + error.message);
+            }
+        }
+        
         async function updateRaceTimes() {
             if (!confirm('すべてのレース時刻を23:59に更新しますか？')) return;
             

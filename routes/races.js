@@ -129,10 +129,20 @@ router.get('/:race_id', async (req, res) => {
 router.get('/:race_id/result', async (req, res) => {
   try {
     const raceResult = await pool.query('SELECT * FROM races WHERE race_id = $1', [req.params.race_id]);
+    
+    // 全頭を表示するため、horsesテーブルをベースにLEFT JOIN resultsテーブル
     const resultsResult = await pool.query(
-      'SELECT r.*, h.horse_name, h.jockey FROM results r JOIN horses h ON r.race_id = h.race_id AND r.umaban = h.umaban WHERE r.race_id = $1 ORDER BY r.rank',
+      `SELECT h.umaban, h.horse_name, h.jockey, h.waku, r.rank, r.result_time
+       FROM horses h
+       LEFT JOIN results r ON h.race_id = r.race_id AND h.umaban = r.umaban
+       WHERE h.race_id = $1
+       ORDER BY 
+         CASE WHEN r.rank IS NULL THEN 1 ELSE 0 END,
+         r.rank NULLS LAST,
+         h.umaban`,
       [req.params.race_id]
     );
+    
     const payoutsResult = await pool.query('SELECT * FROM race_payouts WHERE race_id = $1 ORDER BY bet_type', [req.params.race_id]);
     
     // 全ユーザーの馬券購入状況を取得
