@@ -359,6 +359,136 @@ router.post('/fetch-result/:race_id', async (req, res) => {
     
     console.log('重複除去後:', uniqueResults.length, '頭');
     
+    // 払い戻し情報を取得（Pythonコードと同じロジック）
+    const payouts = [];
+    
+    // Payout_Detail_Tableクラスのテーブルを探す
+    const payoutTables = $('table.Payout_Detail_Table');
+    
+    console.log(`払戻テーブル発見: ${payoutTables.length}個`);
+    
+    payoutTables.each((tableIdx, table) => {
+      const $table = $(table);
+      const rows = $table.find('tr');
+      
+      rows.each((idx, row) => {
+        const $row = $(row);
+        const cols = $row.find('th, td');
+        
+        if (cols.length < 3) return;
+        
+        // 1列目: 馬券種別
+        const betTypeText = $(cols[0]).text().trim();
+        
+        // 馬券種別マッピング
+        const betTypeMap = {
+          '単勝': 'tansho',
+          '複勝': 'fukusho',
+          '馬連': 'umaren',
+          '馬単': 'umatan',
+          'ワイド': 'wide',
+          '3連複': 'sanrenpuku',
+          '3連単': 'sanrentan'
+        };
+        
+        let betType = null;
+        for (const [key, value] of Object.entries(betTypeMap)) {
+          if (betTypeText.includes(key)) {
+            betType = value;
+            break;
+          }
+        }
+        
+        if (!betType) return;
+        
+        // 2列目: 馬番（改行区切りで複数ある場合も）
+        const combinationsText = $(cols[1]).text().trim();
+        // 3列目: 払戻金（改行区切りで複数ある場合も）
+        const payoutsText = $(cols[2]).text().trim();
+        
+        // 払戻金を「円」で分割して数値部分を抽出
+        const payoutParts = [];
+        payoutsText.split('円').forEach(part => {
+          const cleaned = part.trim().replace(/,/g, '');
+          if (cleaned && /^\d+$/.test(cleaned)) {
+            payoutParts.push(cleaned);
+          }
+        });
+        
+        // 改行で分割（馬番用）
+        const combinationParts = combinationsText.split(/[\n\r]+/).filter(c => c.trim());
+        
+        console.log(`  ${betType}: 組み合わせ=${combinationParts.slice(0, 5)}, 払戻=${payoutParts.slice(0, 5)}`);
+        
+        // 複勝の処理
+        if (betType === 'fukusho') {
+          combinationParts.forEach((comb, i) => {
+            if (i < payoutParts.length) {
+              try {
+                const payout = parseInt(payoutParts[i]);
+                payouts.push({
+                  bet_type: betType,
+                  combination: comb,
+                  payout: payout
+                });
+              } catch (e) {
+                console.error(`複勝解析エラー: ${comb} ${payoutParts[i]} - ${e}`);
+              }
+            }
+          });
+        }
+        // ワイドの処理（2つずつペアにする）
+        else if (betType === 'wide') {
+          const pairs = [];
+          let temp = [];
+          combinationParts.forEach(part => {
+            if (part) {
+              temp.push(part);
+              if (temp.length === 2) {
+                pairs.push(`${temp[0]},${temp[1]}`);
+                temp = [];
+              }
+            }
+          });
+          
+          pairs.forEach((pair, i) => {
+            if (i < payoutParts.length) {
+              try {
+                const payout = parseInt(payoutParts[i]);
+                payouts.push({
+                  bet_type: betType,
+                  combination: pair,
+                  payout: payout
+                });
+              } catch (e) {
+                console.error(`ワイド解析エラー: ${pair} ${payoutParts[i]} - ${e}`);
+              }
+            }
+          });
+        }
+        // その他（単勝、馬連、馬単、3連複、3連単）
+        else {
+          const combination = combinationParts[0] || '';
+          const combinationCleaned = combination.replace(/-/g, ',').replace(/→/g, ',');
+          
+          if (payoutParts.length > 0) {
+            try {
+              const payout = parseInt(payoutParts[0]);
+              payouts.push({
+                bet_type: betType,
+                combination: combinationCleaned,
+                payout: payout
+              });
+            } catch (e) {
+              console.error(`${betType}解析エラー: ${combinationCleaned} ${payoutParts[0]} - ${e}`);
+            }
+          }
+        }
+      });
+    });
+    
+    console.log('取得した払い戻し:', payouts.length, '件');
+    
     // データベースに保存（既存データは削除）
     await pool.query('DELETE FROM results WHERE race_id = $1', [race_id]);
     
@@ -369,7 +499,19 @@ router.post('/fetch-result/:race_id', async (req, res) => {
       );
     }
     
-    res.send(`成功: ${uniqueResults.length}頭の結果を取得しました`);
+    // 払い戻し情報を保存（既存データは削除）
+    if (payouts.length > 0) {
+      await pool.query('DELETE FROM race_payouts WHERE race_id = $1', [race_id]);
+      
+      for (const payout of payouts) {
+        await pool.query(
+          'INSERT INTO race_payouts (race_id, bet_type, combination, payout) VALUES ($1, $2, $3, $4) ON CONFLICT (race_id, bet_type, combination) DO UPDATE SET payout = EXCLUDED.payout',
+          [race_id, payout.bet_type, payout.combination, payout.payout]
+        );
+      }
+    }
+    
+    res.send(`成功: ${uniqueResults.length}頭の結果と${payouts.length}件の払い戻し情報を取得しました`);
     
   } catch (error) {
     console.error('=== Error fetching results ===');
