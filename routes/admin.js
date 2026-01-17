@@ -8,6 +8,18 @@ const pool = require('../db/connection');
 // アップロード設定
 const upload = multer({ dest: 'uploads/' });
 
+// 管理者パスワード検証ミドルウェア
+const verifyAdminPassword = (req, res, next) => {
+  const adminPassword = process.env.ADMIN_PASSWORD || 'keiba2025';
+  const providedPassword = req.body.admin_password || req.query.admin_password;
+  
+  if (providedPassword !== adminPassword) {
+    return res.status(403).send('管理者パスワードが正しくありません');
+  }
+  
+  next();
+};
+
 // CSVインポートページ
 router.get('/import', (req, res) => {
   res.render('import');
@@ -279,7 +291,7 @@ router.post('/update-race-times', async (req, res) => {
 });
 
 // netkeibaからレース結果を自動取得
-router.post('/fetch-result/:race_id', async (req, res) => {
+router.post('/fetch-result/:race_id', verifyAdminPassword, async (req, res) => {
   const axios = require('axios');
   const cheerio = require('cheerio');
   const iconv = require('iconv-lite');
@@ -527,7 +539,7 @@ router.post('/fetch-result/:race_id', async (req, res) => {
 });
 
 // netkeibaからレース情報と出走馬を自動取得・登録
-router.post('/fetch-race/:race_id', async (req, res) => {
+router.post('/fetch-race/:race_id', verifyAdminPassword, async (req, res) => {
   const axios = require('axios');
   const cheerio = require('cheerio');
   const iconv = require('iconv-lite');
@@ -784,6 +796,59 @@ router.post('/fetch-race/:race_id', async (req, res) => {
       console.error('Response data:', error.response.data);
     }
     console.error('================================');
+    res.status(500).send('エラーが発生しました: ' + error.message);
+  }
+});
+
+// レース削除
+router.post('/delete-race/:race_id', verifyAdminPassword, async (req, res) => {
+  const { race_id } = req.params;
+  
+  try {
+    console.log(`レース削除開始: ${race_id}`);
+    
+    // 関連データを順番に削除
+    // 1. 払い戻し情報
+    await pool.query('DELETE FROM payouts WHERE bet_id IN (SELECT id FROM bets WHERE race_id = $1)', [race_id]);
+    console.log('✓ 払い戻し情報を削除');
+    
+    // 2. 馬券購入情報
+    await pool.query('DELETE FROM bets WHERE race_id = $1', [race_id]);
+    console.log('✓ 馬券購入情報を削除');
+    
+    // 3. 予想情報
+    await pool.query('DELETE FROM predictions WHERE race_id = $1', [race_id]);
+    console.log('✓ 予想情報を削除');
+    
+    // 4. レース結果
+    await pool.query('DELETE FROM results WHERE race_id = $1', [race_id]);
+    console.log('✓ レース結果を削除');
+    
+    // 5. レース払戻金
+    await pool.query('DELETE FROM race_payouts WHERE race_id = $1', [race_id]);
+    console.log('✓ レース払戻金を削除');
+    
+    // 6. 出走馬情報
+    await pool.query('DELETE FROM horses WHERE race_id = $1', [race_id]);
+    console.log('✓ 出走馬情報を削除');
+    
+    // 7. レース情報
+    const result = await pool.query('DELETE FROM races WHERE race_id = $1 RETURNING race_name', [race_id]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).send('レースが見つかりませんでした');
+    }
+    
+    const raceName = result.rows[0].race_name;
+    console.log(`✓ レース情報を削除: ${raceName}`);
+    
+    res.send(`成功: ${raceName} (race_id: ${race_id}) を削除しました`);
+    
+  } catch (error) {
+    console.error('=== Error deleting race ===');
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('===========================');
     res.status(500).send('エラーが発生しました: ' + error.message);
   }
 });

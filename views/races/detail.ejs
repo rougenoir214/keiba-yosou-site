@@ -177,6 +177,8 @@
                 <span>📍 <%= race.venue %></span>
             </div>
             <a href="/predictions/<%= race.race_id %>" class="btn" style="margin-top: 15px; display: inline-block; padding: 10px 20px; background: #4caf50; color: white; text-decoration: none; border-radius: 5px;">📝 予想を入力</a>
+            <a href="/races/<%= race.race_id %>/result" class="btn" style="margin-top: 15px; display: inline-block; padding: 10px 20px; background: #ff9800; color: white; text-decoration: none; border-radius: 5px;">📊 結果を見る</a>
+            <button onclick="deleteRace()" class="btn" style="margin-top: 15px; display: inline-block; padding: 10px 20px; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer;">🗑️ レースを削除</button>
             <a href="/races" class="back-link">← レース一覧に戻る</a>
         </div>
 
@@ -280,5 +282,46 @@
         </div>
         <% } %>
     </div>
+
+<script>
+async function deleteRace() {
+    const raceName = '<%= race.race_name %>';
+    const raceId = '<%= race.race_id %>';
+    
+    if (!confirm(`本当に「${raceName}」を削除しますか？\n\nこのレースに関連する以下のデータもすべて削除されます：\n- 出走馬情報\n- 予想データ\n- 馬券購入データ\n- レース結果\n- 払戻金データ\n\nこの操作は取り消せません。`)) {
+        return;
+    }
+    
+    // 管理者パスワードを入力
+    const password = prompt('管理者パスワードを入力してください：');
+    if (!password) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/admin/delete-race/${raceId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ admin_password: password })
+        });
+        
+        const text = await response.text();
+        
+        if (response.ok) {
+            alert(text);
+            // レース一覧に戻る
+            window.location.href = '/races';
+        } else {
+            alert('エラー: ' + text);
+        }
+    } catch (error) {
+        console.error(error);
+        alert('エラーが発生しました: ' + error.message);
+    }
+}
+</script>
+
 </body>
 </html>

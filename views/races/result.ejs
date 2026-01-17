@@ -269,9 +269,19 @@ async function fetchResultFromNetkeiba() {
         return;
     }
     
+    // 管理者パスワードを入力
+    const password = prompt('管理者パスワードを入力してください：');
+    if (!password) {
+        return;
+    }
+    
     try {
         const response = await fetch('/admin/fetch-result/<%= race.race_id %>', {
-            method: 'POST'
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ admin_password: password })
         });
         
         const text = await response.text();

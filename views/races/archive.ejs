@@ -69,6 +69,13 @@
         .btn-secondary:hover {
             background: #777;
         }
+        .btn-delete {
+            background: #f44336;
+            margin-left: 10px;
+        }
+        .btn-delete:hover {
+            background: #d32f2f;
+        }
         .nav-links {
             margin-top: 10px;
         }
@@ -211,10 +218,49 @@
                     <div class="race-actions">
                         <a href="/races/<%= race.race_id %>" class="btn">出馬表を見る</a>
                         <a href="/races/<%= race.race_id %>/result" class="btn" style="background: #4caf50;">結果を見る</a>
+                        <button onclick="deleteRace('<%= race.race_id %>', '<%= race.race_name %>')" class="btn btn-delete">🗑️ 削除</button>
                     </div>
                 </div>
             <% }); %>
         <% } %>
     </div>
+
+<script>
+async function deleteRace(raceId, raceName) {
+    if (!confirm(`本当に「${raceName}」を削除しますか？\n\nこのレースに関連する以下のデータもすべて削除されます：\n- 出走馬情報\n- 予想データ\n- 馬券購入データ\n- レース結果\n- 払戻金データ\n\nこの操作は取り消せません。`)) {
+        return;
+    }
+    
+    // 管理者パスワードを入力
+    const password = prompt('管理者パスワードを入力してください：');
+    if (!password) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/admin/delete-race/${raceId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ admin_password: password })
+        });
+        
+        const text = await response.text();
+        
+        if (response.ok) {
+            alert(text);
+            // ページをリロード
+            location.reload();
+        } else {
+            alert('エラー: ' + text);
+        }
+    } catch (error) {
+        console.error(error);
+        alert('エラーが発生しました: ' + error.message);
+    }
+}
+</script>
+
 </body>
 </html>
