@@ -264,7 +264,7 @@
                                     <% userTotal += bet.amount; %>
                                     <tr style="background: white;">
                                         <td style="padding: 8px; border-bottom: 1px solid #eee;"><%= betTypeNames[bet.bet_type] %></td>
-                                        <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong><%= bet.horses %></strong></td>
+                                        <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong><%= bet.horses.replace(/,/g, '-') %></strong></td>
                                         <td style="padding: 8px; border-bottom: 1px solid #eee;"><%= bet.amount.toLocaleString() %>円</td>
                                     </tr>
                                 <% }); %>

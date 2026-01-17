@@ -5,19 +5,45 @@ const pool = require('../db/connection');
 // ランキングページ
 router.get('/', async (req, res) => {
   try {
+    // 表示モード（monthly or season）
+    const mode = req.query.mode || 'season';
+    
     // シーズン一覧を取得
     const seasonsResult = await pool.query('SELECT * FROM seasons ORDER BY start_date DESC');
     
-    // 選択されたシーズン（デフォルトはアクティブなシーズン）
-    const selectedSeasonId = req.query.season_id || null;
+    let dateFilter = '';
+    let params = [];
     let selectedSeason = null;
+    let currentMonth = null;
     
-    if (selectedSeasonId) {
-      const seasonResult = await pool.query('SELECT * FROM seasons WHERE id = $1', [selectedSeasonId]);
-      selectedSeason = seasonResult.rows[0];
+    if (mode === 'monthly') {
+      // 月間ランキング：当月のデータ
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth() + 1;
+      const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+      const endDate = new Date(year, month, 0);
+      const endDateStr = `${year}-${String(month).padStart(2, '0')}-${endDate.getDate()}`;
+      
+      dateFilter = 'AND r.race_date BETWEEN $1 AND $2';
+      params = [startDate, endDateStr];
+      currentMonth = { year, month, startDate, endDateStr };
     } else {
-      const activeSeasonResult = await pool.query('SELECT * FROM seasons WHERE is_active = true LIMIT 1');
-      selectedSeason = activeSeasonResult.rows[0];
+      // シーズンランキング
+      const selectedSeasonId = req.query.season_id || null;
+      
+      if (selectedSeasonId) {
+        const seasonResult = await pool.query('SELECT * FROM seasons WHERE id = $1', [selectedSeasonId]);
+        selectedSeason = seasonResult.rows[0];
+      } else {
+        const activeSeasonResult = await pool.query('SELECT * FROM seasons WHERE is_active = true LIMIT 1');
+        selectedSeason = activeSeasonResult.rows[0];
+      }
+      
+      if (selectedSeason) {
+        dateFilter = 'AND r.race_date BETWEEN $1 AND $2';
+        params = [selectedSeason.start_date, selectedSeason.end_date];
+      }
     }
     
     // ユーザー別の統計を計算
@@ -26,11 +52,11 @@ router.get('/', async (req, res) => {
         u.id,
         u.display_name,
         COUNT(DISTINCT b.race_id) as race_count,
-        COUNT(b.id) as bet_count,
         SUM(b.amount) as total_bet,
         COALESCE(SUM(p.payout_amount), 0) as total_payout,
         COALESCE(SUM(p.payout_amount), 0) - SUM(b.amount) as profit,
         COUNT(CASE WHEN p.payout_amount > 0 THEN 1 END) as hit_count,
+        COUNT(b.id) as bet_count,
         CASE 
           WHEN COUNT(b.id) > 0 
           THEN CAST(COUNT(CASE WHEN p.payout_amount > 0 THEN 1 END) * 100.0 / COUNT(b.id) AS NUMERIC(10,1))
@@ -46,17 +72,18 @@ router.get('/', async (req, res) => {
       LEFT JOIN payouts p ON b.id = p.bet_id
       LEFT JOIN races r ON b.race_id = r.race_id
       WHERE b.id IS NOT NULL
-      ${selectedSeason ? 'AND r.race_date BETWEEN $1 AND $2' : ''}
+      ${dateFilter}
       GROUP BY u.id, u.display_name
       ORDER BY profit DESC
     `;
     
-    const params = selectedSeason ? [selectedSeason.start_date, selectedSeason.end_date] : [];
     const rankingResult = await pool.query(rankingQuery, params);
     
     res.render('ranking/index', {
+      mode: mode,
       seasons: seasonsResult.rows,
       selectedSeason: selectedSeason,
+      currentMonth: currentMonth,
       rankings: rankingResult.rows,
       user: req.session.user
     });

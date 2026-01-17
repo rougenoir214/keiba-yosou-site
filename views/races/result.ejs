@@ -192,7 +192,7 @@ if (result.rank) {
                     <% const profit = bet.payout_amount ? bet.payout_amount - bet.amount : -bet.amount; %>
                     <tr style="background: <%= isHit ? '#e8f5e9' : bet.payout_amount !== null ? '#ffebee' : 'white' %>;">
                         <td style="padding: 8px; border-bottom: 1px solid #eee;"><%= betTypeNames[bet.bet_type] %></td>
-                        <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong><%= bet.horses %></strong></td>
+                        <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong><%= bet.horses.replace(/,/g, '-') %></strong></td>
                         <td style="padding: 8px; border-bottom: 1px solid #eee;"><%= bet.amount.toLocaleString() %>円</td>
                         <td style="padding: 8px; border-bottom: 1px solid #eee;">
                             <% if (bet.payout_amount === null) { %>
