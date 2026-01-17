@@ -411,32 +411,80 @@ router.post('/fetch-race/:race_id', async (req, res) => {
     // HTMLをパース
     const $ = cheerio.load(html);
     
-    // レース名を取得
-    const raceName = $('.RaceName').text().trim() || 
-                     $('h1').first().text().trim() ||
-                     'レース名取得失敗';
+    // レース名を取得（h1タグから）
+    let raceName = `レース${race_id}`;  // デフォルト値
+    
+    $('h1').each((i, elem) => {
+      const text = $(elem).text().trim();
+      if (text && text.length > 2 && !text.includes('発走')) {
+        raceName = text;
+        console.log('[レース名取得]', raceName);
+        return false;  // break
+      }
+    });
     
     // 開催日を取得（HTMLから）
     let raceDate = '';
     
-    // パターン1: RaceData01から日付を取得
-    const raceDataText = $('.RaceData01').text();
-    const dateMatch = raceDataText.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+    // 方法1: dd要素から日付を探す
+    $('dd').each((i, elem) => {
+      if (raceDate) return;
+      const text = $(elem).text().trim();
+      const match = text.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+      if (match) {
+        const year = match[1];
+        const month = match[2].padStart(2, '0');
+        const day = match[3].padStart(2, '0');
+        raceDate = `${year}-${month}-${day}`;
+        console.log('[レース日付取得(dd)]', raceDate);
+      }
+    });
     
-    if (dateMatch) {
-      const year = dateMatch[1];
-      const month = dateMatch[2].padStart(2, '0');
-      const day = dateMatch[3].padStart(2, '0');
-      raceDate = `${year}-${month}-${day}`;
-    } else {
-      // パターン2: race_idから年だけ取得して、他はフォールバック
+    // 方法2: p要素から探す
+    if (!raceDate) {
+      $('p').each((i, elem) => {
+        if (raceDate) return;
+        const text = $(elem).text().trim();
+        const match = text.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+        if (match) {
+          const year = match[1];
+          const month = match[2].padStart(2, '0');
+          const day = match[3].padStart(2, '0');
+          raceDate = `${year}-${month}-${day}`;
+          console.log('[レース日付取得(p)]', raceDate);
+        }
+      });
+    }
+    
+    // 方法3: div要素から探す
+    if (!raceDate) {
+      $('div').each((i, elem) => {
+        if (raceDate) return;
+        const text = $(elem).text().trim();
+        if (text.length < 100) {
+          const match = text.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+          if (match) {
+            const year = match[1];
+            const month = match[2].padStart(2, '0');
+            const day = match[3].padStart(2, '0');
+            raceDate = `${year}-${month}-${day}`;
+            console.log('[レース日付取得(div)]', raceDate);
+          }
+        }
+      });
+    }
+    
+    // 日付が取得できなかった場合の処理
+    if (!raceDate) {
       console.log('[警告] HTMLから日付が取得できませんでした');
       const year = race_id.substring(0, 4);
       raceDate = `${year}-01-01`;  // フォールバック値
     }
     
     // 競馬場を取得（race_idから判定）
-    const venueCode = race_id.substring(8, 10);
+    // race_id構造: YYYYKKDDRRNN
+    // KK = 競馬場コード (4-5桁目)
+    const venueCode = race_id.substring(4, 6);
     const venueMap = {
       '01': '札幌', '02': '函館', '03': '福島', '04': '新潟',
       '05': '東京', '06': '中山', '07': '中京', '08': '京都',
@@ -450,33 +498,34 @@ router.post('/fetch-race/:race_id', async (req, res) => {
     const horses = [];
     $('.Shutuba_Table tbody tr, .RaceTable01 tbody tr').each((index, element) => {
       const $row = $(element);
+      const $cols = $row.find('td');
+      
+      // 列数チェック
+      if ($cols.length < 8) return;
       
       // 枠番（1列目）
-      const waku = parseInt($row.find('td:nth-child(1)').text().trim());
+      const waku = parseInt($cols.eq(0).text().trim());
       
       // 馬番（2列目）
-      const umaban = parseInt($row.find('td:nth-child(2)').text().trim());
+      const umaban = parseInt($cols.eq(1).text().trim());
       
-      // 馬名（3列目のリンク）
-      const horseName = $row.find('td:nth-child(3) a').text().trim() ||
-                        $row.find('td:nth-child(3)').text().trim();
+      // 馬名（4列目）※3列目は印マークなのでスキップ
+      const horseName = $cols.eq(3).text().trim();
       
-      // 性齢（4列目）
-      const sexAge = $row.find('td:nth-child(4)').text().trim();
+      // 性齢（5列目）
+      const sexAge = $cols.eq(4).text().trim();
       
-      // 斤量（5列目）
-      const weight = $row.find('td:nth-child(5)').text().trim();
+      // 斤量（6列目）
+      const weight = $cols.eq(5).text().trim();
       
-      // 騎手（6列目）
-      const jockey = $row.find('td:nth-child(6) a').text().trim() ||
-                     $row.find('td:nth-child(6)').text().trim();
+      // 騎手（7列目）
+      const jockey = $cols.eq(6).text().trim();
       
-      // 厩舎（7列目）
-      const trainer = $row.find('td:nth-child(7) a').text().trim() ||
-                      $row.find('td:nth-child(7)').text().trim();
+      // 厩舎（8列目）
+      const trainer = $cols.eq(7).text().trim();
       
-      // 馬体重（8列目）
-      const horseWeight = $row.find('td:nth-child(8)').text().trim();
+      // 馬体重（9列目）
+      const horseWeight = $cols.eq(8).text().trim();
       
       if (!isNaN(waku) && !isNaN(umaban) && horseName) {
         horses.push({
