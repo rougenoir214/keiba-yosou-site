@@ -251,7 +251,12 @@
                 
                 <% Object.keys(userBets).forEach(userName => { %>
                     <div style="margin-bottom: 20px; border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; background: #f9f9f9;">
-                        <h3 style="color: #667eea; margin-bottom: 10px;">👤 <%= userName %></h3>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <h3 style="color: #667eea; margin: 0;">👤 <%= userName %></h3>
+                            <% if (user && user.display_name === userName) { %>
+                                <button onclick="deleteMyBets()" style="padding: 8px 16px; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">🗑️ 自分の馬券を削除</button>
+                            <% } %>
+                        </div>
                         <table style="width: 100%; border-collapse: collapse;">
                             <thead>
                                 <tr style="background: white;">
@@ -313,6 +318,34 @@ async function deleteRace() {
             alert(text);
             // レース一覧に戻る
             window.location.href = '/races';
+        } else {
+            alert('エラー: ' + text);
+        }
+    } catch (error) {
+        console.error(error);
+        alert('エラーが発生しました: ' + error.message);
+    }
+}
+
+// 自分の馬券を削除
+async function deleteMyBets() {
+    const raceId = '<%= race.race_id %>';
+    
+    if (!confirm('このレースの自分の購入馬券をすべて削除しますか？\n\nこの操作は取り消せません。')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/races/${raceId}/delete-my-bets`, {
+            method: 'POST'
+        });
+        
+        const text = await response.text();
+        
+        if (response.ok) {
+            alert(text);
+            // ページをリロード
+            location.reload();
         } else {
             alert('エラー: ' + text);
         }

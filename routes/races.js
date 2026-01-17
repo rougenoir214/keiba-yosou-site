@@ -245,4 +245,54 @@ router.post('/:race_id/calculate-payouts', async (req, res) => {
   }
 });
 
+// 自分の購入馬券を一括削除
+router.post('/:race_id/delete-my-bets', async (req, res) => {
+  const { race_id } = req.params;
+  const userId = req.session.user?.id;
+  
+  // ログインチェック
+  if (!userId) {
+    return res.status(401).send('ログインが必要です');
+  }
+  
+  try {
+    console.log(`馬券削除開始: race_id=${race_id}, user_id=${userId}`);
+    
+    // まず、このユーザーの馬券数を確認
+    const countResult = await pool.query(
+      'SELECT COUNT(*) as count FROM bets WHERE race_id = $1 AND user_id = $2',
+      [race_id, userId]
+    );
+    
+    const betCount = parseInt(countResult.rows[0].count);
+    
+    if (betCount === 0) {
+      return res.status(404).send('削除する馬券がありません');
+    }
+    
+    // 1. 払い戻し情報を削除
+    await pool.query(
+      'DELETE FROM payouts WHERE bet_id IN (SELECT id FROM bets WHERE race_id = $1 AND user_id = $2)',
+      [race_id, userId]
+    );
+    console.log('✓ 払い戻し情報を削除');
+    
+    // 2. 馬券を削除
+    await pool.query(
+      'DELETE FROM bets WHERE race_id = $1 AND user_id = $2',
+      [race_id, userId]
+    );
+    console.log('✓ 馬券を削除');
+    
+    res.send(`成功: ${betCount}件の馬券を削除しました`);
+    
+  } catch (error) {
+    console.error('=== Error deleting bets ===');
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    console.error('===========================');
+    res.status(500).send('エラーが発生しました: ' + error.message);
+  }
+});
+
 module.exports = router;
