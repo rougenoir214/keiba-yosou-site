@@ -55,11 +55,11 @@ router.get('/', async (req, res) => {
         SUM(b.amount) as total_bet,
         COALESCE(SUM(p.payout_amount), 0) as total_payout,
         COALESCE(SUM(p.payout_amount), 0) - SUM(b.amount) as profit,
-        COUNT(CASE WHEN p.payout_amount > 0 THEN 1 END) as hit_count,
+        COUNT(DISTINCT CASE WHEN p.payout_amount > 0 THEN b.race_id END) as hit_race_count,
         COUNT(b.id) as bet_count,
         CASE 
-          WHEN COUNT(b.id) > 0 
-          THEN CAST(COUNT(CASE WHEN p.payout_amount > 0 THEN 1 END) * 100.0 / COUNT(b.id) AS NUMERIC(10,1))
+          WHEN COUNT(DISTINCT b.race_id) > 0 
+          THEN CAST(COUNT(DISTINCT CASE WHEN p.payout_amount > 0 THEN b.race_id END) * 100.0 / COUNT(DISTINCT b.race_id) AS NUMERIC(10,1))
           ELSE 0 
         END as hit_rate,
         CASE 

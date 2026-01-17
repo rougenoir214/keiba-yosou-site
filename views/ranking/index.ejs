@@ -117,7 +117,7 @@ tr:hover { background: #f5f5f5; }
 <td class="<%= parseInt(rank.profit) >= 0 ? 'profit-positive' : 'profit-negative' %>">
 <%= parseInt(rank.profit) >= 0 ? '+' : '' %><%= parseInt(rank.profit).toLocaleString() %>円
 </td>
-<td><%= rank.hit_rate %>%（<%= rank.hit_count %>/<%= rank.bet_count %>）</td>
+<td><%= rank.hit_rate %>%（<%= rank.hit_race_count %>/<%= rank.race_count %>）</td>
 <td><%= rank.recovery_rate %>%</td>
 </tr>
 <% }); %>
