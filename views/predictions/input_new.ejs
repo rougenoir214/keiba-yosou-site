@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>予想入力 - <%= race.race_name %></title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+.container { max-width: 1200px; margin: 0 auto; }
+.header { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+.header h1 { color: #333; margin-bottom: 10px; }
+.back-link { display: inline-block; margin-top: 10px; color: #667eea; text-decoration: none; }
+.back-link:hover { text-decoration: underline; }
+.section { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+.section h2 { color: #333; margin-bottom: 15px; border-bottom: 2px solid #667eea; padding-bottom: 10px; }
+table { width: 100%; border-collapse: collapse; }
+th { background: #667eea; color: white; padding: 12px; text-align: left; }
+td { padding: 12px; border-bottom: 1px solid #eee; }
+.mark-select { padding: 8px; border: 2px solid #e0e0e0; border-radius: 5px; font-size: 16px; }
+.waku { width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; }
+.waku-1 { background: white; color: #333; border: 2px solid #333; }
+.waku-2 { background: black; }
+.waku-3 { background: red; }
+.waku-4 { background: blue; }
+.waku-5 { background: yellow; color: #333; }
+.waku-6 { background: green; }
+.waku-7 { background: orange; }
+.waku-8 { background: pink; color: #333; }
+.btn { padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; }
+.btn:hover { background: #5568d3; }
+.btn-success { background: #4caf50; }
+.btn-success:hover { background: #45a049; }
+.btn-danger { background: #f44336; }
+.btn-danger:hover { background: #da190b; }
+.form-group { margin-bottom: 15px; }
+.form-group label { display: block; margin-bottom: 5px; font-weight: 600; color: #555; }
+.form-group select, .form-group input { width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 5px; }
+.bet-list { list-style: none; }
+.bet-item { background: #f5f5f5; padding: 15px; border-radius: 5px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+.bet-info { flex: 1; }
+.total-amount { font-size: 20px; font-weight: bold; color: #667eea; margin-top: 15px; }
+.remaining-amount { color: #4caf50; margin-top: 5px; }
+.horse-checkboxes { max-height: 300px; overflow-y: auto; border: 1px solid #e0e0e0; padding: 10px; border-radius: 5px; background: #f9f9f9; }
+.horse-checkbox-label { display: block; padding: 8px; margin: 5px 0; background: white; border-radius: 5px; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; }
+.horse-checkbox-label:hover { background: #f0f0f0; }
+.horse-checkbox-label input[type="checkbox"] { margin-right: 10px; }
+.horse-checkbox-label.selected { border-color: #4caf50; background: #e8f5e9; }
+.horse-checkbox-label .waku { display: inline-block; width: 25px; height: 25px; line-height: 25px; text-align: center; border-radius: 3px; margin-right: 8px; font-size: 12px; }
+.horse-checkbox-label .jockey { color: #888; margin-left: 10px; font-size: 13px; }
+.horse-checkbox-label-small { display: block; padding: 5px; margin: 3px 0; background: white; border-radius: 3px; cursor: pointer; border: 2px solid transparent; font-size: 13px; }
+.horse-checkbox-label-small:hover { background: #f0f0f0; }
+.horse-checkbox-label-small.selected { border-color: #4caf50; background: #e8f5e9; }
+.horse-checkbox-label-small input[type="checkbox"] { margin-right: 5px; }
+.selection-info { margin-top: 10px; padding: 10px; background: #fff3cd; border-radius: 5px; font-weight: bold; color: #856404; }
+.bet-input-type { display: none; }
+</style>
+</head>
+<body>
+<div class="container">
+<div class="header">
+<h1>📝 予想入力 - <%= race.race_name %></h1>
+<p>ユーザー: <%= user.display_name %></p>
+<a href="/races/<%= race.race_id %>" class="back-link">← 出馬表に戻る</a>
+</div>
+<div class="section">
+<h2>🎯 印を入力</h2>
+<form id="marks-form">
+<table>
+<thead><tr><th>枠</th><th>馬番</th><th>馬名</th><th>騎手</th><th>印</th></tr></thead>
+<tbody>
+<% const existingMarks = {}; predictions.forEach(p => { existingMarks[p.umaban] = p.mark; }); %>
+<% horses.forEach(horse => { %>
+<tr>
+<td><div class="waku waku-<%= horse.waku %>"><%= horse.waku %></div></td>
+<td><strong><%= horse.umaban %></strong></td>
+<td><%= horse.horse_name %></td>
+<td><%= horse.jockey %></td>
+<td><select name="mark_<%= horse.umaban %>" class="mark-select">
+<option value="">-</option>
+<option value="◎" <%= existingMarks[horse.umaban] === '◎' ? 'selected' : '' %>>◎</option>
+<option value="○" <%= existingMarks[horse.umaban] === '○' ? 'selected' : '' %>>○</option>
+<option value="▲" <%= existingMarks[horse.umaban] === '▲' ? 'selected' : '' %>>▲</option>
+<option value="△" <%= existingMarks[horse.umaban] === '△' ? 'selected' : '' %>>△</option>
+<option value="☆" <%= existingMarks[horse.umaban] === '☆' ? 'selected' : '' %>>☆</option>
+</select></td>
+</tr>
+<% }); %>
+</tbody>
+</table>
+<button type="submit" class="btn btn-success" style="margin-top: 15px;">印を保存</button>
+</form>
+</div>
+<div class="section">
+<h2>💰 馬券を購入</h2>
+<form id="bet-form">
+<div class="form-group">
+<label for="bet_type">馬券種別</label>
+<select id="bet_type" name="bet_type" required>
+<option value="tansho">単勝</option>
+<option value="fukusho">複勝</option>
+<option value="umaren">馬連</option>
+<option value="umatan">馬単</option>
+<option value="wide">ワイド</option>
+<option value="sanrenpuku">3連複</option>
+<option value="sanrentan">3連単</option>
+</select>
+</div>
+<div class="form-group" id="buy-method-group">
+<label>購入方法</label>
+<div style="display: flex; gap: 20px;">
+<label style="display: flex; align-items: center; gap: 5px;">
+<input type="radio" name="buy_method" value="normal" checked onchange="updateBuyMethod()"> 通常
+</label>
+<label style="display: flex; align-items: center; gap: 5px;" id="box-option">
+<input type="radio" name="buy_method" value="box" onchange="updateBuyMethod()"> ボックス
+</label>
+<label style="display: flex; align-items: center; gap: 5px;" id="formation-option">
+<input type="radio" name="buy_method" value="formation" onchange="updateBuyMethod()"> フォーメーション
+</label>
+</div>
+</div>
+
+<!-- 単勝・複勝用（1列） -->
+<div id="tanfuku-input" class="bet-input-type" style="display: none;">
+<div class="form-group">
+<label>馬を選択（1頭）</label>
+<div class="horse-checkboxes">
+<% horses.forEach(horse => { %>
+<label class="horse-checkbox-label">
+<input type="checkbox" name="tanfuku_horse" value="<%= horse.umaban %>" onchange="updateTanfukuSelection()">
+<span class="waku waku-<%= horse.waku %>"><%= horse.waku %></span>
+<strong><%= horse.umaban %></strong> <%= horse.horse_name %> <span class="jockey"><%= horse.jockey %></span>
+</label>
+<% }); %>
+</div>
+</div>
+</div>
+
+<!-- 馬連・ワイド：通常 -->
+<div id="umaren-normal-input" class="bet-input-type" style="display: none;">
+<div class="form-group">
+<label>馬を選択（2頭）</label>
+<div class="horse-checkboxes">
+<% horses.forEach(horse => { %>
+<label class="horse-checkbox-label">
+<input type="checkbox" name="umaren_normal_horse" value="<%= horse.umaban %>" onchange="updateUmarenNormalSelection()">
+<span class="waku waku-<%= horse.waku %>"><%= horse.waku %></span>
+<strong><%= horse.umaban %></strong> <%= horse.horse_name %> <span class="jockey"><%= horse.jockey %></span>
+</label>
+<% }); %>
+</div>
+</div>
+</div>
+
+<!-- 馬連・ワイド：ボックス -->
+<div id="umaren-box-input" class="bet-input-type" style="display: none;">
+<div class="form-group">
+<label>馬を選択（2頭以上でボックス）</label>
+<div class="horse-checkboxes">
+<% horses.forEach(horse => { %>
+<label class="horse-checkbox-label">
+<input type="checkbox" name="umaren_box_horse" value="<%= horse.umaban %>" onchange="updateUmarenBoxSelection()">
+<span class="waku waku-<%= horse.waku %>"><%= horse.waku %></span>
+<strong><%= horse.umaban %></strong> <%= horse.horse_name %> <span class="jockey"><%= horse.jockey %></span>
+</label>
+<% }); %>
+</div>
+<div class="selection-info"><span id="umaren-box-count">0点</span> × <span id="umaren-box-amount">100</span>円</div>
+</div>
+</div>
+
+<!-- 馬単：通常 -->
+<div id="umatan-normal-input" class="bet-input-type" style="display: none;">
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+<div class="form-group">
+<label>1着（1頭）</label>
+<div class="horse-checkboxes" style="max-height: 250px;">
+<% horses.forEach(horse => { %>
+<label class="horse-checkbox-label">
+<input type="checkbox" name="umatan_normal_first" value="<%= horse.umaban %>" onchange="updateUmatanNormalSelection()">
+<span class="waku waku-<%= horse.waku %>"><%= horse.umaban %></span>
+<strong><%= horse.umaban %></strong> <%= horse.horse_name %>
+</label>
+<% }); %>
+</div>
+</div>
+<div class="form-group">
+<label>2着（1頭）</label>
+<div class="horse-checkboxes" style="max-height: 250px;">
+<% horses.forEach(horse => { %>
+<label class="horse-checkbox-label">
+<input type="checkbox" name="umatan_normal_second" value="<%= horse.umaban %>" onchange="updateUmatanNormalSelection()">
+<span class="waku waku-<%= horse.waku %>"><%= horse.umaban %></span>
+<strong><%= horse.umaban %></strong> <%= horse.horse_name %>
+</label>
+<% }); %>
+</div>
+</div>
+</div>
+</div>
+
+<!-- 馬単：フォーメーション -->
+<div id="umatan-formation-input" class="bet-input-type" style="display: none;">
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+<div class="form-group">
+<label>1着候補（複数可）</label>
+<div class="horse-checkboxes" style="max-height: 250px;">
+<% horses.forEach(horse => { %>
+<label class="horse-checkbox-label">
+<input type="checkbox" name="umatan_form_first" value="<%= horse.umaban %>" onchange="updateUmatanFormationSelection()">
+<span class="waku waku-<%= horse.waku %>"><%= horse.umaban %></span>
+<strong><%= horse.umaban %></strong> <%= horse.horse_name %>
+</label>
+<% }); %>
+</div>
+</div>
+<div class="form-group">
+<label>2着候補（複数可）</label>
+<div class="horse-checkboxes" style="max-height: 250px;">
+<% horses.forEach(horse => { %>
+<label class="horse-checkbox-label">
+<input type="checkbox" name="umatan_form_second" value="<%= horse.umaban %>" onchange="updateUmatanFormationSelection()">
+<span class="waku waku-<%= horse.waku %>"><%= horse.umaban %></span>
+<strong><%= horse.umaban %></strong> <%= horse.horse_name %>
+</label>
+<% }); %>
+</div>
+</div>
+</div>
+<div class="selection-info"><span id="umatan-form-count">0点</span> × <span id="umatan-form-amount">100</span>円</div>
+</div>
+
+<!-- 3連複：通常 -->
+<div id="sanrenpuku-normal-input" class="bet-input-type" style="display: none;">
+<div class="form-group">
+<label>馬を選択（3頭）</label>
+<div class="horse-checkboxes">
+<% horses.forEach(horse => { %>
+<label class="horse-checkbox-label">
+<input type="checkbox" name="sanrenpuku_normal_horse" value="<%= horse.umaban %>" onchange="updateSanrenpukuNormalSelection()">
+<span class="waku waku-<%= horse.waku %>"><%= horse.waku %></span>
+<strong><%= horse.umaban %></strong> <%= horse.horse_name %> <span class="jockey"><%= horse.jockey %></span>
+</label>
+<% }); %>
+</div>
+</div>
+</div>
+
+<!-- 3連複：ボックス -->
+<div id="sanrenpuku-box-input" class="bet-input-type" style="display: none;">
+<div class="form-group">
+<label>馬を選択（3頭以上でボックス）</label>
+<div class="horse-checkboxes">
+<% horses.forEach(horse => { %>
+<label class="horse-checkbox-label">
+<input type="checkbox" name="sanrenpuku_box_horse" value="<%= horse.umaban %>" onchange="updateSanrenpukuBoxSelection()">
+<span class="waku waku-<%= horse.waku %>"><%= horse.waku %></span>
+<strong><%= horse.umaban %></strong> <%= horse.horse_name %> <span class="jockey"><%= horse.jockey %></span>
+</label>
+<% }); %>
+</div>
+<div class="selection-info"><span id="sanrenpuku-box-count">0点</span> × <span id="sanrenpuku-box-amount">100</span>円</div>
+</div>
+</div>
+
+<!-- 3連複：フォーメーション（3列） -->
+<div id="sanrenpuku-formation-input" class="bet-input-type" style="display: none;">
+<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+<div class="form-group">
+<label>1着候補</label>
+<div class="horse-checkboxes" style="max-height: 200px;">
+<% horses.forEach(horse => { %>
+<label class="horse-checkbox-label-small">
+<input type="checkbox" name="sanrenpuku_form_first" value="<%= horse.umaban %>" onchange="updateSanrenpukuFormationSelection()">
+<span class="waku waku-<%= horse.waku %>" style="width: 20px; height: 20px; font-size: 11px; line-height: 20px;"><%= horse.waku %></span>
+<strong><%= horse.umaban %></strong>
+</label>
+<% }); %>
+</div>
+</div>
+<div class="form-group">
+<label>2着候補</label>
+<div class="horse-checkboxes" style="max-height: 200px;">
+<% horses.forEach(horse => { %>
+<label class="horse-checkbox-label-small">
+<input type="checkbox" name="sanrenpuku_form_second" value="<%= horse.umaban %>" onchange="updateSanrenpukuFormationSelection()">
+<span class="waku waku-<%= horse.waku %>" style="width: 20px; height: 20px; font-size: 11px; line-height: 20px;"><%= horse.waku %></span>
+<strong><%= horse.umaban %></strong>
+</label>
+<% }); %>
+</div>
+</div>
+<div class="form-group">
+<label>3着候補</label>
+<div class="horse-checkboxes" style="max-height: 200px;">
+<% horses.forEach(horse => { %>
+<label class="horse-checkbox-label-small">
+<input type="checkbox" name="sanrenpuku_form_third" value="<%= horse.umaban %>" onchange="updateSanrenpukuFormationSelection()">
+<span class="waku waku-<%= horse.waku %>" style="width: 20px; height: 20px; font-size: 11px; line-height: 20px;"><%= horse.waku %></span>
+<strong><%= horse.umaban %></strong>
+</label>
+<% }); %>
+</div>
+</div>
+</div>
+<div class="selection-info"><span id="sanrenpuku-form-count">0点</span> × <span id="sanrenpuku-form-amount">100</span>円 = <span id="sanrenpuku-form-total">0</span>円</div>
+</div>
+
+<!-- 3連単：通常 -->
+<div id="sanrentan-normal-input" class="bet-input-type" style="display: none;">
+<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+<div class="form-group">
+<label>1着（1頭）</label>
+<div class="horse-checkboxes" style="max-height: 200px;">
+<% horses.forEach(horse => { %>
+<label class="horse-checkbox-label-small">
+<input type="checkbox" name="sanrentan_normal_first" value="<%= horse.umaban %>" onchange="updateSanrentanNormalSelection()">
+<span class="waku waku-<%= horse.waku %>" style="width: 20px; height: 20px; font-size: 11px; line-height: 20px;"><%= horse.waku %></span>
+<strong><%= horse.umaban %></strong>
+</label>
+<% }); %>
+</div>
+</div>
+<div class="form-group">
+<label>2着（1頭）</label>
+<div class="horse-checkboxes" style="max-height: 200px;">
+<% horses.forEach(horse => { %>
+<label class="horse-checkbox-label-small">
+<input type="checkbox" name="sanrentan_normal_second" value="<%= horse.umaban %>" onchange="updateSanrentanNormalSelection()">
+<span class="waku waku-<%= horse.waku %>" style="width: 20px; height: 20px; font-size: 11px; line-height: 20px;"><%= horse.waku %></span>
+<strong><%= horse.umaban %></strong>
+</label>
+<% }); %>
+</div>
+</div>
+<div class="form-group">
+<label>3着（1頭）</label>
+<div class="horse-checkboxes" style="max-height: 200px;">
+<% horses.forEach(horse => { %>
+<label class="horse-checkbox-label-small">
+<input type="checkbox" name="sanrentan_normal_third" value="<%= horse.umaban %>" onchange="updateSanrentanNormalSelection()">
+<span class="waku waku-<%= horse.waku %>" style="width: 20px; height: 20px; font-size: 11px; line-height: 20px;"><%= horse.waku %></span>
+<strong><%= horse.umaban %></strong>
+</label>
+<% }); %>
+</div>
+</div>
+</div>
+</div>
+
+<!-- 3連単：フォーメーション -->
+<div id="sanrentan-formation-input" class="bet-input-type" style="display: none;">
+<div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+<div class="form-group">
+<label>1着候補</label>
+<div class="horse-checkboxes" style="max-height: 200px;">
+<% horses.forEach(horse => { %>
+<label class="horse-checkbox-label-small">
+<input type="checkbox" name="sanrentan_form_first" value="<%= horse.umaban %>" onchange="updateSanrentanFormationSelection()">
+<span class="waku waku-<%= horse.waku %>" style="width: 20px; height: 20px; font-size: 11px; line-height: 20px;"><%= horse.waku %></span>
+<strong><%= horse.umaban %></strong>
+</label>
+<% }); %>
+</div>
+</div>
+<div class="form-group">
+<label>2着候補</label>
+<div class="horse-checkboxes" style="max-height: 200px;">
+<% horses.forEach(horse => { %>
+<label class="horse-checkbox-label-small">
+<input type="checkbox" name="sanrentan_form_second" value="<%= horse.umaban %>" onchange="updateSanrentanFormationSelection()">
+<span class="waku waku-<%= horse.waku %>" style="width: 20px; height: 20px; font-size: 11px; line-height: 20px;"><%= horse.waku %></span>
+<strong><%= horse.umaban %></strong>
+</label>
+<% }); %>
+</div>
+</div>
+<div class="form-group">
+<label>3着候補</label>
+<div class="horse-checkboxes" style="max-height: 200px;">
+<% horses.forEach(horse => { %>
+<label class="horse-checkbox-label-small">
+<input type="checkbox" name="sanrentan_form_third" value="<%= horse.umaban %>" onchange="updateSanrentanFormationSelection()">
+<span class="waku waku-<%= horse.waku %>" style="width: 20px; height: 20px; font-size: 11px; line-height: 20px;"><%= horse.waku %></span>
+<strong><%= horse.umaban %></strong>
+</label>
+<% }); %>
+</div>
+</div>
+</div>
+<div class="selection-info"><span id="sanrentan-form-count">0点</span> × <span id="sanrentan-form-amount">100</span>円 = <span id="sanrentan-form-total">0</span>円</div>
+</div>
+
+<input type="hidden" id="horses_input" name="horses">
+<input type="hidden" id="buy_method_input" name="buy_method" value="normal">
+<input type="hidden" id="bet_count" value="0">
+<div class="form-group">
+<label for="amount">1点あたり金額（円）</label>
+<input type="number" id="amount" name="amount" min="100" step="100" value="100" required>
+</div>
+<button type="submit" class="btn">馬券を追加</button>
+</form>
+</div>
+<div class="section">
+<h2>🎫 購入済み馬券</h2>
+<ul class="bet-list">
+<% if (bets.length === 0) { %>
+<p style="color: #888;">まだ馬券を購入していません</p>
+<% } else { %>
+<% const betTypeNames = { 'tansho': '単勝', 'fukusho': '複勝', 'umaren': '馬連', 'umatan': '馬単', 'wide': 'ワイド', 'sanrenpuku': '3連複', 'sanrentan': '3連単' }; let totalAmount = 0; %>
+<% bets.forEach(bet => { totalAmount += bet.amount; %>
+<li class="bet-item">
+<div class="bet-info"><strong><%= betTypeNames[bet.bet_type] %></strong>: <%= bet.horses %> - <%= bet.amount.toLocaleString() %>円</div>
+<button class="btn btn-danger" onclick="deleteBet(<%= bet.id %>)">削除</button>
+</li>
+<% }); %>
+<div class="total-amount">合計: <span id="total-amount"><%= totalAmount.toLocaleString() %></span>円</div>
+<div class="remaining-amount">残り: <%= (10000 - totalAmount).toLocaleString() %>円</div>
+<% } %>
+</ul>
+</div>
+</div>
+<script>

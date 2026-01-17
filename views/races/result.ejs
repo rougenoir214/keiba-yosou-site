@@ -41,9 +41,24 @@ tr:hover { background: #f5f5f5; }
 <% if (results.length === 0) { %>
 <p style="color: #888;">まだ結果が登録されていません</p>
 <% } else { %>
+<% 
+// ユーザー一覧を取得（予想を入力したユーザー）
+const uniqueUsers = [...new Set(predictions.map(p => p.user_id))];
+const userMap = {};
+predictions.forEach(p => {
+    if (!userMap[p.user_id]) {
+        userMap[p.user_id] = p.display_name;
+    }
+});
+%>
 <table>
 <thead>
-<tr><th>着順</th><th>馬番</th><th>馬名</th><th>騎手</th><th>タイム</th></tr>
+<tr>
+<th>着順</th><th>馬番</th><th>馬名</th><th>騎手</th><th>タイム</th>
+<% uniqueUsers.forEach(userId => { %>
+    <th style="background: #f0f0f0; min-width: 50px;"><%= userMap[userId] %></th>
+<% }); %>
+</tr>
 </thead>
 <tbody>
 <% results.forEach(result => { %>
@@ -53,6 +68,14 @@ tr:hover { background: #f5f5f5; }
 <td><%= result.horse_name %></td>
 <td><%= result.jockey %></td>
 <td><%= result.result_time || '-' %></td>
+<% uniqueUsers.forEach(userId => { %>
+    <% 
+    const userPred = predictions.find(p => p.umaban == result.umaban && p.user_id == userId);
+    %>
+    <td style="text-align: center; font-size: 18px;">
+        <%= userPred ? userPred.mark : '-' %>
+    </td>
+<% }); %>
 </tr>
 <% }); %>
 </tbody>

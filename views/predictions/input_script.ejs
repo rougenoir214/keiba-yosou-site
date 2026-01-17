@@ -1,0 +1,83 @@
+<script>
+<%- include('input_bet_logic.js', {}) %>
+
+// 印の保存
+document.getElementById('marks-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const marks = {};
+    for (const [key, value] of formData.entries()) {
+        if (key.startsWith('mark_') && value) {
+            marks[key.replace('mark_', '')] = value;
+        }
+    }
+    try {
+        const r = await fetch('/predictions/<%= race.race_id %>/marks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ marks })
+        });
+        alert(r.ok ? '印を保存しました' : 'エラーが発生しました');
+    } catch (error) { alert('エラーが発生しました'); }
+});
+
+// 馬券の追加
+document.getElementById('bet-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const betType = document.getElementById('bet_type').value;
+    const buyMethod = document.getElementById('buy_method_input').value;
+    const horses = document.getElementById('horses_input').value;
+    const betCount = parseInt(document.getElementById('bet_count').value) || 0;
+    const amount = parseInt(document.getElementById('amount').value) || 100;
+
+    if (!horses || betCount === 0) {
+        alert('馬を選択してください');
+        return;
+    }
+
+    const data = {
+        bet_type: betType,
+        horses: horses,
+        amount: amount,
+        buy_method: buyMethod,
+        bet_count: betCount
+    };
+
+    try {
+        const r = await fetch('/predictions/<%= race.race_id %>/bets', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const result = await r.json();
+        if (r.ok) {
+            alert(`馬券を追加しました（${betCount}点 × ${amount}円 = ${(betCount * amount).toLocaleString()}円）`);
+            location.reload();
+        } else {
+            alert(result.error || 'エラーが発生しました');
+        }
+    } catch (error) { 
+        console.error(error);
+        alert('エラーが発生しました'); 
+    }
+});
+
+// 馬券の削除
+async function deleteBet(betId) {
+    if (!confirm('この馬券を削除しますか？')) return;
+    try {
+        const r = await fetch(`/predictions/<%= race.race_id %>/bets/${betId}`, { method: 'DELETE' });
+        if (r.ok) { 
+            alert('馬券を削除しました'); 
+            location.reload(); 
+        } else { 
+            alert('エラーが発生しました'); 
+        }
+    } catch (error) { 
+        console.error(error);
+        alert('エラーが発生しました'); 
+    }
+}
+</script>
+</body>
+</html>

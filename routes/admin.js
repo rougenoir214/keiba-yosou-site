@@ -52,7 +52,7 @@ router.post('/import', upload.single('csvfile'), async (req, res) => {
 
         // データベースに保存
         for (const [raceId, horses] of races) {
-          // レース情報を保存（CSVからレース名と競馬場を取得）
+          // レース情報を保存（CSVからレース名、日付、競馬場を取得）
           const firstHorse = horses[0];
           
           console.log('=== レース情報デバッグ ===');
@@ -62,7 +62,24 @@ router.post('/import', upload.single('csvfile'), async (req, res) => {
           const raceName = getValue(firstHorse, 'レース名') || `レース${raceId}`;
           const venue = getValue(firstHorse, '競馬場') || '未設定';
           
+          // CSVから日付を取得（優先）、なければrace_idから抽出
+          let raceDate = getValue(firstHorse, 'レース日付');
+          
+          if (!raceDate && raceId.length >= 8) {
+            // フォールバック: race_idから推測（正確ではない）
+            const year = raceId.substring(0, 4);
+            const month = raceId.substring(4, 6);
+            const day = raceId.substring(6, 8);
+            raceDate = `${year}-${month}-${day}`;
+            console.log('[警告] CSVに日付がないため、race_idから推測しました（不正確）');
+          }
+          
+          if (!raceDate) {
+            raceDate = new Date().toISOString().split('T')[0]; // 最終フォールバック
+          }
+          
           console.log('取得したレース名:', raceName);
+          console.log('取得したレース日付:', raceDate);
           console.log('取得した競馬場:', venue);
           console.log('=======================');
           
@@ -71,8 +88,9 @@ router.post('/import', upload.single('csvfile'), async (req, res) => {
              VALUES ($1, $2, $3, $4, $5) 
              ON CONFLICT (race_id) DO UPDATE SET
                race_name = EXCLUDED.race_name,
+               race_date = EXCLUDED.race_date,
                venue = EXCLUDED.venue`,
-            [raceId, raceName, new Date(), '15:00', venue]
+            [raceId, raceName, raceDate, '15:00', venue]
           );
 
           // 出走馬情報を保存

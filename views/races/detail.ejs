@@ -103,6 +103,19 @@
                         <th>騎手</th>
                         <th>厩舎</th>
                         <th>馬体重</th>
+                        <% 
+                        // ユーザー一覧を取得（予想を入力したユーザー）
+                        const uniqueUsers = [...new Set(predictions.map(p => p.user_id))];
+                        const userMap = {};
+                        predictions.forEach(p => {
+                            if (!userMap[p.user_id]) {
+                                userMap[p.user_id] = p.display_name;
+                            }
+                        });
+                        %>
+                        <% uniqueUsers.forEach(userId => { %>
+                            <th style="background: #f0f0f0; min-width: 50px;"><%= userMap[userId] %></th>
+                        <% }); %>
                     </tr>
                 </thead>
                 <tbody>
@@ -120,6 +133,14 @@
                             <td><%= horse.jockey %></td>
                             <td><%= horse.stable %></td>
                             <td><%= horse.horse_weight || '-' %></td>
+                            <% uniqueUsers.forEach(userId => { %>
+                                <% 
+                                const userPred = predictions.find(p => p.umaban == horse.umaban && p.user_id == userId);
+                                %>
+                                <td style="text-align: center; font-size: 18px;">
+                                    <%= userPred ? userPred.mark : '-' %>
+                                </td>
+                            <% }); %>
                         </tr>
                     <% }); %>
                 </tbody>

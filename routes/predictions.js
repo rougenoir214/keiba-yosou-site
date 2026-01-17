@@ -50,10 +50,34 @@ function generateCombinations(horses, betType, buyMethod, axisHorses, partnerHor
       }
     }
   } else if (buyMethod === 'formation') {
-    if (betType === 'umatan') {
-      // 馬単フォーメーション：1着→2着
-      const firstArray = first.split(',').map(h => h.trim());
-      const secondArray = second.split(',').map(h => h.trim());
+    // 新しいフォーマット: horses = "1,3-5,7" または "1,3-5,7-9,11"
+    // "-"で分割して各部分を取得
+    const parts = horses.split('-');
+    
+    if (betType === 'umaren' || betType === 'wide') {
+      // 馬連・ワイドフォーメーション：軸馬-相手馬
+      const axisArray = parts[0] ? parts[0].split(',').map(h => h.trim()) : [];
+      const partnerArray = parts[1] ? parts[1].split(',').map(h => h.trim()) : [];
+      
+      const seen = new Set();
+      
+      // 軸馬×相手馬の組み合わせのみ（軸馬同士は除外）
+      axisArray.forEach(a => {
+        partnerArray.forEach(p => {
+          if (a !== p) {
+            const sorted = [a, p].sort((a, b) => parseInt(a) - parseInt(b));
+            const combo = sorted.join(',');
+            if (!seen.has(combo)) {
+              seen.add(combo);
+              combinations.push(combo);
+            }
+          }
+        });
+      });
+    } else if (betType === 'umatan') {
+      // 馬単フォーメーション：1着-2着
+      const firstArray = parts[0] ? parts[0].split(',').map(h => h.trim()) : [];
+      const secondArray = parts[1] ? parts[1].split(',').map(h => h.trim()) : [];
       
       firstArray.forEach(f => {
         secondArray.forEach(s => {
@@ -63,18 +87,22 @@ function generateCombinations(horses, betType, buyMethod, axisHorses, partnerHor
         });
       });
     } else if (betType === 'sanrenpuku' || betType === 'sanrentan') {
-      const firstArray = first.split(',').map(h => h.trim());
-      const secondArray = second.split(',').map(h => h.trim());
-      const thirdArray = third.split(',').map(h => h.trim());
+      // 3連複/3連単フォーメーション：1着-2着-3着
+      const firstArray = parts[0] ? parts[0].split(',').map(h => h.trim()) : [];
+      const secondArray = parts[1] ? parts[1].split(',').map(h => h.trim()) : [];
+      const thirdArray = parts[2] ? parts[2].split(',').map(h => h.trim()) : [];
       
       if (betType === 'sanrenpuku') {
+        // 3連複：順序関係なし、重複を除く
+        const seen = new Set();
         firstArray.forEach(f => {
           secondArray.forEach(s => {
             thirdArray.forEach(t => {
               if (f !== s && f !== t && s !== t) {
                 const sorted = [f, s, t].sort((a, b) => parseInt(a) - parseInt(b));
                 const combo = sorted.join(',');
-                if (!combinations.includes(combo)) {
+                if (!seen.has(combo)) {
+                  seen.add(combo);
                   combinations.push(combo);
                 }
               }
@@ -82,6 +110,7 @@ function generateCombinations(horses, betType, buyMethod, axisHorses, partnerHor
           });
         });
       } else {
+        // 3連単：順序あり
         firstArray.forEach(f => {
           secondArray.forEach(s => {
             thirdArray.forEach(t => {
@@ -92,29 +121,15 @@ function generateCombinations(horses, betType, buyMethod, axisHorses, partnerHor
           });
         });
       }
-    } else {
-      const axis = axisHorses.split(',').map(h => h.trim());
-      const partners = partnerHorses.split(',').map(h => h.trim());
-      
-      if (betType === 'umaren' || betType === 'wide') {
+    } else if (betType === 'umaren' || betType === 'wide') {
+      // 馬連・ワイドの軸流し（古い形式との互換性）
+      if (axisHorses && partnerHorses) {
+        const axis = axisHorses.split(',').map(h => h.trim());
+        const partners = partnerHorses.split(',').map(h => h.trim());
+        
         for (let i = 0; i < axis.length; i++) {
           for (let j = i + 1; j < axis.length; j++) {
             combinations.push(`${axis[i]},${axis[j]}`);
-          }
-        }
-        axis.forEach(a => {
-          partners.forEach(p => {
-            if (a !== p) {
-              combinations.push(`${a},${p}`);
-            }
-          });
-        });
-      } else if (betType === 'umatan') {
-        for (let i = 0; i < axis.length; i++) {
-          for (let j = 0; j < axis.length; j++) {
-            if (i !== j) {
-              combinations.push(`${axis[i]},${axis[j]}`);
-            }
           }
         }
         axis.forEach(a => {

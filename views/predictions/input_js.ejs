@@ -1,4 +1,78 @@
     <script>
+// 馬券種別ごとの選択可能数
+const betTypeConfig = {
+    tansho: { max: 1, name: '単勝' },
+    fukusho: { max: 1, name: '複勝' },
+    umaren: { max: 2, name: '馬連' },
+    umatan: { max: 2, name: '馬単' },
+    wide: { max: 2, name: 'ワイド' },
+    sanrenpuku: { max: 3, name: '3連複' },
+    sanrentan: { max: 3, name: '3連単' }
+};
+
+// 馬券種別変更時の処理
+function updateHorseSelection() {
+    const betType = document.getElementById('bet_type').value;
+    const config = betTypeConfig[betType];
+    
+    // 情報メッセージを更新
+    const infoDiv = document.getElementById('horse-selection-info');
+    infoDiv.textContent = `${config.name}: ${config.max}頭選択`;
+    
+    // チェックボックスをリセット
+    document.querySelectorAll('input[name="horse_check"]').forEach(cb => {
+        cb.checked = false;
+    });
+    
+    updateSelectedHorses();
+}
+
+// 選択された馬を更新
+function updateSelectedHorses() {
+    const betType = document.getElementById('bet_type').value;
+    const config = betTypeConfig[betType];
+    const checkboxes = document.querySelectorAll('input[name="horse_check"]:checked');
+    const selected = Array.from(checkboxes).map(cb => cb.value);
+    
+    // 最大数を超えた場合、最後のチェックを外す
+    if (selected.length > config.max) {
+        checkboxes[checkboxes.length - 1].checked = false;
+        return updateSelectedHorses();
+    }
+    
+    // 隠しフィールドに値を設定
+    document.getElementById('horses_input').value = selected.join(',');
+    
+    // 表示を更新
+    const displayText = document.getElementById('selected-horses-text');
+    if (selected.length === 0) {
+        displayText.textContent = 'なし';
+        displayText.style.color = '#888';
+    } else {
+        displayText.textContent = selected.join(', ');
+        displayText.style.color = '#333';
+    }
+    
+    // チェックボックスのラベルにハイライト
+    document.querySelectorAll('.horse-checkbox-label').forEach(label => {
+        const checkbox = label.querySelector('input[type="checkbox"]');
+        if (checkbox.checked) {
+            label.style.borderColor = '#4caf50';
+            label.style.background = '#e8f5e9';
+        } else {
+            label.style.borderColor = 'transparent';
+            label.style.background = 'white';
+        }
+    });
+}
+
+// 初期化
+document.addEventListener('DOMContentLoaded', () => {
+    updateHorseSelection();
+});
+
+// 以下、既存のJavaScript
+
         // 印を保存
         document.getElementById('marks-form').addEventListener('submit', async (e) => {
             e.preventDefault();

@@ -2,18 +2,73 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db/connection');
 
-// レース一覧
+// レース一覧（直近2週間のみ）
 router.get('/', async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT r.*, COUNT(h.id) as horse_count 
       FROM races r 
       LEFT JOIN horses h ON r.race_id = h.race_id 
+      WHERE r.race_date >= CURRENT_DATE - INTERVAL '14 days'
       GROUP BY r.id 
       ORDER BY r.race_date DESC, r.race_time DESC
     `);
     
     res.render('races/index', { races: result.rows });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('エラーが発生しました');
+  }
+});
+
+// 過去レース一覧（全期間）
+router.get('/archive', async (req, res) => {
+  try {
+    // シーズン一覧を取得
+    const seasonsResult = await pool.query('SELECT * FROM seasons ORDER BY start_date DESC');
+    
+    // 選択されたシーズンまたは期間
+    const seasonId = req.query.season_id;
+    const startDate = req.query.start_date;
+    const endDate = req.query.end_date;
+    
+    let whereClause = '';
+    let params = [];
+    let selectedSeason = null;
+    let customPeriod = null;
+    
+    if (seasonId) {
+      // シーズン選択の場合
+      const seasonResult = await pool.query('SELECT * FROM seasons WHERE id = $1', [seasonId]);
+      selectedSeason = seasonResult.rows[0];
+      whereClause = 'WHERE r.race_date BETWEEN $1 AND $2';
+      params = [selectedSeason.start_date, selectedSeason.end_date];
+    } else if (startDate && endDate) {
+      // カスタム期間の場合
+      customPeriod = { start_date: startDate, end_date: endDate };
+      whereClause = 'WHERE r.race_date BETWEEN $1 AND $2';
+      params = [startDate, endDate];
+    }
+    // 何も選択されていない場合は全期間
+    
+    const query = `
+      SELECT r.*, COUNT(h.id) as horse_count 
+      FROM races r 
+      LEFT JOIN horses h ON r.race_id = h.race_id 
+      ${whereClause}
+      GROUP BY r.id 
+      ORDER BY r.race_date DESC, r.race_time DESC
+    `;
+    
+    const result = await pool.query(query, params);
+    
+    res.render('races/archive', {
+      races: result.rows,
+      seasons: seasonsResult.rows,
+      selectedSeason: selectedSeason,
+      customPeriod: customPeriod,
+      user: req.session.user
+    });
   } catch (error) {
     console.error(error);
     res.status(500).send('エラーが発生しました');
@@ -43,6 +98,16 @@ router.get('/:race_id', async (req, res) => {
       [req.params.race_id]
     );
     
+    // 全ユーザーの予想（印）を取得
+    const predictionsResult = await pool.query(
+      `SELECT p.*, u.display_name, u.username
+       FROM predictions p
+       JOIN users u ON p.user_id = u.id
+       WHERE p.race_id = $1
+       ORDER BY u.display_name, p.umaban`,
+      [req.params.race_id]
+    );
+    
     if (raceResult.rows.length === 0) {
       return res.status(404).send('レースが見つかりません');
     }
@@ -51,6 +116,7 @@ router.get('/:race_id', async (req, res) => {
       race: raceResult.rows[0],
       horses: horsesResult.rows,
       allBets: betsResult.rows,
+      predictions: predictionsResult.rows,
       user: req.session.user
     });
   } catch (error) {
@@ -80,6 +146,16 @@ router.get('/:race_id/result', async (req, res) => {
       [req.params.race_id]
     );
     
+    // 全ユーザーの予想（印）を取得
+    const predictionsResult = await pool.query(
+      `SELECT p.*, u.display_name, u.username
+       FROM predictions p
+       JOIN users u ON p.user_id = u.id
+       WHERE p.race_id = $1
+       ORDER BY u.display_name, p.umaban`,
+      [req.params.race_id]
+    );
+    
     if (raceResult.rows.length === 0) {
       return res.status(404).send('レースが見つかりません');
     }
@@ -89,6 +165,7 @@ router.get('/:race_id/result', async (req, res) => {
       results: resultsResult.rows,
       payouts: payoutsResult.rows,
       allBets: betsResult.rows,
+      predictions: predictionsResult.rows,
       user: req.session.user
     });
   } catch (error) {

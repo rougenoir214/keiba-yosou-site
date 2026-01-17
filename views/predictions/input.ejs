@@ -41,6 +41,19 @@ td { padding: 12px; border-bottom: 1px solid #eee; }
 .bet-info { flex: 1; }
 .total-amount { font-size: 20px; font-weight: bold; color: #667eea; margin-top: 15px; }
 .remaining-amount { color: #4caf50; margin-top: 5px; }
+.horse-checkboxes { max-height: 300px; overflow-y: auto; border: 1px solid #e0e0e0; padding: 10px; border-radius: 5px; background: #f9f9f9; }
+.horse-checkbox-label { display: block; padding: 8px; margin: 5px 0; background: white; border-radius: 5px; cursor: pointer; border: 2px solid transparent; transition: all 0.2s; }
+.horse-checkbox-label:hover { background: #f0f0f0; }
+.horse-checkbox-label input[type="checkbox"] { margin-right: 10px; }
+.horse-checkbox-label.selected { border-color: #4caf50; background: #e8f5e9; }
+.horse-checkbox-label .waku { display: inline-block; width: 25px; height: 25px; line-height: 25px; text-align: center; border-radius: 3px; margin-right: 8px; font-size: 12px; }
+.horse-checkbox-label .jockey { color: #888; margin-left: 10px; font-size: 13px; }
+.horse-checkbox-label-small { display: block; padding: 5px; margin: 3px 0; background: white; border-radius: 3px; cursor: pointer; border: 2px solid transparent; font-size: 13px; }
+.horse-checkbox-label-small:hover { background: #f0f0f0; }
+.horse-checkbox-label-small.selected { border-color: #4caf50; background: #e8f5e9; }
+.horse-checkbox-label-small input[type="checkbox"] { margin-right: 5px; }
+.selection-info { margin-top: 10px; padding: 10px; background: #fff3cd; border-radius: 5px; font-weight: bold; color: #856404; }
+.bet-input-type { display: none; }
 </style>
 </head>
 <body>
@@ -96,64 +109,436 @@ td { padding: 12px; border-bottom: 1px solid #eee; }
 <div class="form-group" id="buy-method-group">
 <label>購入方法</label>
 <div style="display: flex; gap: 20px;">
-<label style="display: flex; align-items: center; gap: 5px;"><input type="radio" name="buy_method" value="normal" checked> 通常</label>
-<label style="display: flex; align-items: center; gap: 5px;" id="box-option"><input type="radio" name="buy_method" value="box"> ボックス</label>
-<label style="display: flex; align-items: center; gap: 5px;" id="formation-option"><input type="radio" name="buy_method" value="formation"> フォーメーション</label>
+<label style="display: flex; align-items: center; gap: 5px;">
+<input type="radio" name="buy_method" value="normal" checked onchange="updateBuyMethod()"> 通常
+</label>
+<label style="display: flex; align-items: center; gap: 5px;" id="box-option">
+<input type="radio" name="buy_method" value="box" onchange="updateBuyMethod()"> ボックス
+</label>
+<label style="display: flex; align-items: center; gap: 5px;" id="formation-option">
+<input type="radio" name="buy_method" value="formation" onchange="updateBuyMethod()"> フォーメーション
+</label>
 </div>
 </div>
-<div id="normal-input" class="buy-method-inputs">
+
+<!-- 単勝・複勝用（1列） -->
+<div id="tanfuku-input" class="bet-input-type" style="display: none;">
 <div class="form-group">
-<label for="horses_input">馬番（カンマ区切り）</label>
-<input type="text" id="horses_input" name="horses" placeholder="例: 1,3,5">
-<small id="normal-help">単勝・複勝は1頭、馬連・馬単・ワイドは2頭、3連複・3連単は3頭</small>
+<label>馬を選択（1頭）</label>
+<div style="overflow-x: auto;">
+<table style="width: 100%; border-collapse: collapse;">
+<thead>
+<tr style="background: #667eea; color: white;">
+<th style="padding: 10px; text-align: center;">枠</th>
+<th style="padding: 10px; text-align: left;">馬番</th>
+<th style="padding: 10px; text-align: left;">馬名</th>
+<th style="padding: 10px; text-align: left;">騎手</th>
+<th style="padding: 10px; text-align: center;">選択</th>
+</tr>
+</thead>
+<tbody>
+<% horses.forEach(horse => { %>
+<tr style="border-bottom: 1px solid #eee;">
+<td style="padding: 8px; text-align: center;">
+<span class="waku waku-<%= horse.waku %>" style="width: 25px; height: 25px; display: inline-block; line-height: 25px; border-radius: 3px;"><%= horse.waku %></span>
+</td>
+<td style="padding: 8px;"><strong><%= horse.umaban %></strong></td>
+<td style="padding: 8px;"><%= horse.horse_name %></td>
+<td style="padding: 8px;"><%= horse.jockey %></td>
+<td style="padding: 8px; text-align: center;">
+<input type="checkbox" name="tanfuku_horse" value="<%= horse.umaban %>" onchange="updateTanfukuSelection()">
+</td>
+</tr>
+<% }); %>
+</tbody>
+</table>
 </div>
 </div>
-<div id="box-input" class="buy-method-inputs" style="display: none;">
+</div>
+
+<!-- 馬連・ワイド：通常 -->
+<div id="umaren-normal-input" class="bet-input-type" style="display: none;">
 <div class="form-group">
-<label for="box_horses">選択馬番（カンマ区切り）</label>
-<input type="text" id="box_horses" placeholder="例: 1,3,5,7">
-<small>全組み合わせが自動で購入されます</small>
+<label>馬を選択（2頭）</label>
+<div style="overflow-x: auto;">
+<table style="width: 100%; border-collapse: collapse;">
+<thead>
+<tr style="background: #667eea; color: white;">
+<th style="padding: 10px; text-align: center;">枠</th>
+<th style="padding: 10px; text-align: left;">馬番</th>
+<th style="padding: 10px; text-align: left;">馬名</th>
+<th style="padding: 10px; text-align: left;">騎手</th>
+<th style="padding: 10px; text-align: center;">選択</th>
+</tr>
+</thead>
+<tbody>
+<% horses.forEach(horse => { %>
+<tr style="border-bottom: 1px solid #eee;">
+<td style="padding: 8px; text-align: center;">
+<span class="waku waku-<%= horse.waku %>" style="width: 25px; height: 25px; display: inline-block; line-height: 25px; border-radius: 3px;"><%= horse.waku %></span>
+</td>
+<td style="padding: 8px;"><strong><%= horse.umaban %></strong></td>
+<td style="padding: 8px;"><%= horse.horse_name %></td>
+<td style="padding: 8px;"><%= horse.jockey %></td>
+<td style="padding: 8px; text-align: center;">
+<input type="checkbox" name="umaren_normal_horse" value="<%= horse.umaban %>" onchange="updateUmarenNormalSelection()">
+</td>
+</tr>
+<% }); %>
+</tbody>
+</table>
 </div>
 </div>
-<div id="formation-input" class="buy-method-inputs" style="display: none;">
-<div id="formation-umatan" style="display: none;">
+</div>
+
+<!-- 馬連・ワイド：ボックス -->
+<div id="umaren-box-input" class="bet-input-type" style="display: none;">
 <div class="form-group">
-<label for="umatan_first">1着（軸・カンマ区切り可）</label>
-<input type="text" id="umatan_first" placeholder="例: 1,3">
+<label>馬を選択（2頭以上でボックス）</label>
+<div style="overflow-x: auto;">
+<table style="width: 100%; border-collapse: collapse;">
+<thead>
+<tr style="background: #667eea; color: white;">
+<th style="padding: 10px; text-align: center;">枠</th>
+<th style="padding: 10px; text-align: left;">馬番</th>
+<th style="padding: 10px; text-align: left;">馬名</th>
+<th style="padding: 10px; text-align: left;">騎手</th>
+<th style="padding: 10px; text-align: center;">選択</th>
+</tr>
+</thead>
+<tbody>
+<% horses.forEach(horse => { %>
+<tr style="border-bottom: 1px solid #eee;">
+<td style="padding: 8px; text-align: center;">
+<span class="waku waku-<%= horse.waku %>" style="width: 25px; height: 25px; display: inline-block; line-height: 25px; border-radius: 3px;"><%= horse.waku %></span>
+</td>
+<td style="padding: 8px;"><strong><%= horse.umaban %></strong></td>
+<td style="padding: 8px;"><%= horse.horse_name %></td>
+<td style="padding: 8px;"><%= horse.jockey %></td>
+<td style="padding: 8px; text-align: center;">
+<input type="checkbox" name="umaren_box_horse" value="<%= horse.umaban %>" onchange="updateUmarenBoxSelection()">
+</td>
+</tr>
+<% }); %>
+</tbody>
+</table>
 </div>
+<div class="selection-info"><span id="umaren-box-count">0点</span> × <span id="umaren-box-amount">100</span>円</div>
+</div>
+</div>
+
+<!-- 馬連・ワイド：フォーメーション -->
+<div id="umaren-formation-input" class="bet-input-type" style="display: none;">
 <div class="form-group">
-<label for="umatan_second">2着（カンマ区切り）</label>
-<input type="text" id="umatan_second" placeholder="例: 5,7,9">
-<small>1着→2着の全組み合わせが購入されます</small>
+<label>軸馬と相手馬を選択</label>
+<div style="overflow-x: auto;">
+<table style="width: 100%; border-collapse: collapse;">
+<thead>
+<tr style="background: #667eea; color: white;">
+<th style="padding: 10px; text-align: center;">枠</th>
+<th style="padding: 10px; text-align: left;">馬番</th>
+<th style="padding: 10px; text-align: left;">馬名</th>
+<th style="padding: 10px; text-align: center;">軸馬</th>
+<th style="padding: 10px; text-align: center;">相手</th>
+</tr>
+</thead>
+<tbody>
+<% horses.forEach(horse => { %>
+<tr style="border-bottom: 1px solid #eee;">
+<td style="padding: 8px; text-align: center;">
+<span class="waku waku-<%= horse.waku %>" style="width: 25px; height: 25px; display: inline-block; line-height: 25px; border-radius: 3px;"><%= horse.waku %></span>
+</td>
+<td style="padding: 8px;"><strong><%= horse.umaban %></strong></td>
+<td style="padding: 8px;"><%= horse.horse_name %></td>
+<td style="padding: 8px; text-align: center;">
+<input type="checkbox" name="umaren_form_axis" value="<%= horse.umaban %>" onchange="updateUmarenFormationSelection()">
+</td>
+<td style="padding: 8px; text-align: center;">
+<input type="checkbox" name="umaren_form_partner" value="<%= horse.umaban %>" onchange="updateUmarenFormationSelection()">
+</td>
+</tr>
+<% }); %>
+</tbody>
+</table>
+</div>
+<div class="selection-info"><span id="umaren-form-count">0点</span> × <span id="umaren-form-amount">100</span>円</div>
 </div>
 </div>
-<div id="formation-2ren" style="display: none;">
+
+<!-- 馬単：通常 -->
+<div id="umatan-normal-input" class="bet-input-type" style="display: none;">
 <div class="form-group">
-<label for="axis_horses">軸馬（カンマ区切り・複数可）</label>
-<input type="text" id="axis_horses" placeholder="例: 1,3">
-<small>軸同士の組み合わせも購入されます</small>
+<label>1着と2着を選択</label>
+<div style="overflow-x: auto;">
+<table style="width: 100%; border-collapse: collapse;">
+<thead>
+<tr style="background: #667eea; color: white;">
+<th style="padding: 10px; text-align: center;">枠</th>
+<th style="padding: 10px; text-align: left;">馬番</th>
+<th style="padding: 10px; text-align: left;">馬名</th>
+<th style="padding: 10px; text-align: center;">1着</th>
+<th style="padding: 10px; text-align: center;">2着</th>
+</tr>
+</thead>
+<tbody>
+<% horses.forEach(horse => { %>
+<tr style="border-bottom: 1px solid #eee;">
+<td style="padding: 8px; text-align: center;">
+<span class="waku waku-<%= horse.waku %>" style="width: 25px; height: 25px; display: inline-block; line-height: 25px; border-radius: 3px;"><%= horse.waku %></span>
+</td>
+<td style="padding: 8px;"><strong><%= horse.umaban %></strong></td>
+<td style="padding: 8px;"><%= horse.horse_name %></td>
+<td style="padding: 8px; text-align: center;">
+<input type="checkbox" name="umatan_normal_first" value="<%= horse.umaban %>" onchange="updateUmatanNormalSelection()">
+</td>
+<td style="padding: 8px; text-align: center;">
+<input type="checkbox" name="umatan_normal_second" value="<%= horse.umaban %>" onchange="updateUmatanNormalSelection()">
+</td>
+</tr>
+<% }); %>
+</tbody>
+</table>
 </div>
+</div>
+</div>
+
+<!-- 馬単：フォーメーション -->
+<div id="umatan-formation-input" class="bet-input-type" style="display: none;">
 <div class="form-group">
-<label for="partner_horses">相手馬（カンマ区切り）</label>
-<input type="text" id="partner_horses" placeholder="例: 5,7,9">
+<label>1着候補と2着候補を選択</label>
+<div style="overflow-x: auto;">
+<table style="width: 100%; border-collapse: collapse;">
+<thead>
+<tr style="background: #667eea; color: white;">
+<th style="padding: 10px; text-align: center;">枠</th>
+<th style="padding: 10px; text-align: left;">馬番</th>
+<th style="padding: 10px; text-align: left;">馬名</th>
+<th style="padding: 10px; text-align: center;">1着候補</th>
+<th style="padding: 10px; text-align: center;">2着候補</th>
+</tr>
+</thead>
+<tbody>
+<% horses.forEach(horse => { %>
+<tr style="border-bottom: 1px solid #eee;">
+<td style="padding: 8px; text-align: center;">
+<span class="waku waku-<%= horse.waku %>" style="width: 25px; height: 25px; display: inline-block; line-height: 25px; border-radius: 3px;"><%= horse.waku %></span>
+</td>
+<td style="padding: 8px;"><strong><%= horse.umaban %></strong></td>
+<td style="padding: 8px;"><%= horse.horse_name %></td>
+<td style="padding: 8px; text-align: center;">
+<input type="checkbox" name="umatan_form_first" value="<%= horse.umaban %>" onchange="updateUmatanFormationSelection()">
+</td>
+<td style="padding: 8px; text-align: center;">
+<input type="checkbox" name="umatan_form_second" value="<%= horse.umaban %>" onchange="updateUmatanFormationSelection()">
+</td>
+</tr>
+<% }); %>
+</tbody>
+</table>
+</div>
+<div class="selection-info"><span id="umatan-form-count">0点</span> × <span id="umatan-form-amount">100</span>円</div>
 </div>
 </div>
-<div id="formation-3ren" style="display: none;">
+
+<!-- 3連複：通常 -->
+<div id="sanrenpuku-normal-input" class="bet-input-type" style="display: none;">
 <div class="form-group">
-<label for="first_horses">1着（カンマ区切り）</label>
-<input type="text" id="first_horses" placeholder="例: 1,3">
+<label>馬を選択（3頭）</label>
+<div style="overflow-x: auto;">
+<table style="width: 100%; border-collapse: collapse;">
+<thead>
+<tr style="background: #667eea; color: white;">
+<th style="padding: 10px; text-align: center;">枠</th>
+<th style="padding: 10px; text-align: left;">馬番</th>
+<th style="padding: 10px; text-align: left;">馬名</th>
+<th style="padding: 10px; text-align: left;">騎手</th>
+<th style="padding: 10px; text-align: center;">選択</th>
+</tr>
+</thead>
+<tbody>
+<% horses.forEach(horse => { %>
+<tr style="border-bottom: 1px solid #eee;">
+<td style="padding: 8px; text-align: center;">
+<span class="waku waku-<%= horse.waku %>" style="width: 25px; height: 25px; display: inline-block; line-height: 25px; border-radius: 3px;"><%= horse.waku %></span>
+</td>
+<td style="padding: 8px;"><strong><%= horse.umaban %></strong></td>
+<td style="padding: 8px;"><%= horse.horse_name %></td>
+<td style="padding: 8px;"><%= horse.jockey %></td>
+<td style="padding: 8px; text-align: center;">
+<input type="checkbox" name="sanrenpuku_normal_horse" value="<%= horse.umaban %>" onchange="updateSanrenpukuNormalSelection()">
+</td>
+</tr>
+<% }); %>
+</tbody>
+</table>
 </div>
+</div>
+</div>
+
+<!-- 3連複：ボックス -->
+<div id="sanrenpuku-box-input" class="bet-input-type" style="display: none;">
 <div class="form-group">
-<label for="second_horses">2着（カンマ区切り）</label>
-<input type="text" id="second_horses" placeholder="例: 5,7">
+<label>馬を選択（3頭以上でボックス）</label>
+<div style="overflow-x: auto;">
+<table style="width: 100%; border-collapse: collapse;">
+<thead>
+<tr style="background: #667eea; color: white;">
+<th style="padding: 10px; text-align: center;">枠</th>
+<th style="padding: 10px; text-align: left;">馬番</th>
+<th style="padding: 10px; text-align: left;">馬名</th>
+<th style="padding: 10px; text-align: left;">騎手</th>
+<th style="padding: 10px; text-align: center;">選択</th>
+</tr>
+</thead>
+<tbody>
+<% horses.forEach(horse => { %>
+<tr style="border-bottom: 1px solid #eee;">
+<td style="padding: 8px; text-align: center;">
+<span class="waku waku-<%= horse.waku %>" style="width: 25px; height: 25px; display: inline-block; line-height: 25px; border-radius: 3px;"><%= horse.waku %></span>
+</td>
+<td style="padding: 8px;"><strong><%= horse.umaban %></strong></td>
+<td style="padding: 8px;"><%= horse.horse_name %></td>
+<td style="padding: 8px;"><%= horse.jockey %></td>
+<td style="padding: 8px; text-align: center;">
+<input type="checkbox" name="sanrenpuku_box_horse" value="<%= horse.umaban %>" onchange="updateSanrenpukuBoxSelection()">
+</td>
+</tr>
+<% }); %>
+</tbody>
+</table>
 </div>
+<div class="selection-info"><span id="sanrenpuku-box-count">0点</span> × <span id="sanrenpuku-box-amount">100</span>円</div>
+</div>
+</div>
+
+<!-- 3連複：フォーメーション（3列） -->
+<div id="sanrenpuku-formation-input" class="bet-input-type" style="display: none;">
 <div class="form-group">
-<label for="third_horses">3着（カンマ区切り）</label>
-<input type="text" id="third_horses" placeholder="例: 9,11">
+<label>1着候補・2着候補・3着候補を選択</label>
+<div style="overflow-x: auto;">
+<table style="width: 100%; border-collapse: collapse;">
+<thead>
+<tr style="background: #667eea; color: white;">
+<th style="padding: 10px; text-align: center;">枠</th>
+<th style="padding: 10px; text-align: left;">馬番</th>
+<th style="padding: 10px; text-align: left;">馬名</th>
+<th style="padding: 10px; text-align: center;">1着候補</th>
+<th style="padding: 10px; text-align: center;">2着候補</th>
+<th style="padding: 10px; text-align: center;">3着候補</th>
+</tr>
+</thead>
+<tbody>
+<% horses.forEach(horse => { %>
+<tr style="border-bottom: 1px solid #eee;">
+<td style="padding: 8px; text-align: center;">
+<span class="waku waku-<%= horse.waku %>" style="width: 25px; height: 25px; display: inline-block; line-height: 25px; border-radius: 3px;"><%= horse.waku %></span>
+</td>
+<td style="padding: 8px;"><strong><%= horse.umaban %></strong></td>
+<td style="padding: 8px;"><%= horse.horse_name %></td>
+<td style="padding: 8px; text-align: center;">
+<input type="checkbox" name="sanrenpuku_form_first" value="<%= horse.umaban %>" onchange="updateSanrenpukuFormationSelection()">
+</td>
+<td style="padding: 8px; text-align: center;">
+<input type="checkbox" name="sanrenpuku_form_second" value="<%= horse.umaban %>" onchange="updateSanrenpukuFormationSelection()">
+</td>
+<td style="padding: 8px; text-align: center;">
+<input type="checkbox" name="sanrenpuku_form_third" value="<%= horse.umaban %>" onchange="updateSanrenpukuFormationSelection()">
+</td>
+</tr>
+<% }); %>
+</tbody>
+</table>
 </div>
-<small>全組み合わせが自動で購入されます</small>
+<div class="selection-info"><span id="sanrenpuku-form-count">0点</span> × <span id="sanrenpuku-form-amount">100</span>円 = <span id="sanrenpuku-form-total">0</span>円</div>
 </div>
 </div>
+
+<!-- 3連単：通常 -->
+<div id="sanrentan-normal-input" class="bet-input-type" style="display: none;">
+<div class="form-group">
+<label>1着・2着・3着を選択</label>
+<div style="overflow-x: auto;">
+<table style="width: 100%; border-collapse: collapse;">
+<thead>
+<tr style="background: #667eea; color: white;">
+<th style="padding: 10px; text-align: center;">枠</th>
+<th style="padding: 10px; text-align: left;">馬番</th>
+<th style="padding: 10px; text-align: left;">馬名</th>
+<th style="padding: 10px; text-align: center;">1着</th>
+<th style="padding: 10px; text-align: center;">2着</th>
+<th style="padding: 10px; text-align: center;">3着</th>
+</tr>
+</thead>
+<tbody>
+<% horses.forEach(horse => { %>
+<tr style="border-bottom: 1px solid #eee;">
+<td style="padding: 8px; text-align: center;">
+<span class="waku waku-<%= horse.waku %>" style="width: 25px; height: 25px; display: inline-block; line-height: 25px; border-radius: 3px;"><%= horse.waku %></span>
+</td>
+<td style="padding: 8px;"><strong><%= horse.umaban %></strong></td>
+<td style="padding: 8px;"><%= horse.horse_name %></td>
+<td style="padding: 8px; text-align: center;">
+<input type="checkbox" name="sanrentan_normal_first" value="<%= horse.umaban %>" onchange="updateSanrentanNormalSelection()">
+</td>
+<td style="padding: 8px; text-align: center;">
+<input type="checkbox" name="sanrentan_normal_second" value="<%= horse.umaban %>" onchange="updateSanrentanNormalSelection()">
+</td>
+<td style="padding: 8px; text-align: center;">
+<input type="checkbox" name="sanrentan_normal_third" value="<%= horse.umaban %>" onchange="updateSanrentanNormalSelection()">
+</td>
+</tr>
+<% }); %>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+
+<!-- 3連単：フォーメーション -->
+<div id="sanrentan-formation-input" class="bet-input-type" style="display: none;">
+<div class="form-group">
+<label>1着候補・2着候補・3着候補を選択</label>
+<div style="overflow-x: auto;">
+<table style="width: 100%; border-collapse: collapse;">
+<thead>
+<tr style="background: #667eea; color: white;">
+<th style="padding: 10px; text-align: center;">枠</th>
+<th style="padding: 10px; text-align: left;">馬番</th>
+<th style="padding: 10px; text-align: left;">馬名</th>
+<th style="padding: 10px; text-align: center;">1着候補</th>
+<th style="padding: 10px; text-align: center;">2着候補</th>
+<th style="padding: 10px; text-align: center;">3着候補</th>
+</tr>
+</thead>
+<tbody>
+<% horses.forEach(horse => { %>
+<tr style="border-bottom: 1px solid #eee;">
+<td style="padding: 8px; text-align: center;">
+<span class="waku waku-<%= horse.waku %>" style="width: 25px; height: 25px; display: inline-block; line-height: 25px; border-radius: 3px;"><%= horse.waku %></span>
+</td>
+<td style="padding: 8px;"><strong><%= horse.umaban %></strong></td>
+<td style="padding: 8px;"><%= horse.horse_name %></td>
+<td style="padding: 8px; text-align: center;">
+<input type="checkbox" name="sanrentan_form_first" value="<%= horse.umaban %>" onchange="updateSanrentanFormationSelection()">
+</td>
+<td style="padding: 8px; text-align: center;">
+<input type="checkbox" name="sanrentan_form_second" value="<%= horse.umaban %>" onchange="updateSanrentanFormationSelection()">
+</td>
+<td style="padding: 8px; text-align: center;">
+<input type="checkbox" name="sanrentan_form_third" value="<%= horse.umaban %>" onchange="updateSanrentanFormationSelection()">
+</td>
+</tr>
+<% }); %>
+</tbody>
+</table>
+</div>
+<div class="selection-info"><span id="sanrentan-form-count">0点</span> × <span id="sanrentan-form-amount">100</span>円 = <span id="sanrentan-form-total">0</span>円</div>
+</div>
+</div>
+
+<input type="hidden" id="horses_input" name="horses">
+<input type="hidden" id="buy_method_input" name="buy_method" value="normal">
+<input type="hidden" id="bet_count" value="0">
 <div class="form-group">
 <label for="amount">1点あたり金額（円）</label>
 <input type="number" id="amount" name="amount" min="100" step="100" value="100" required>
@@ -181,111 +566,463 @@ td { padding: 12px; border-bottom: 1px solid #eee; }
 </div>
 </div>
 <script>
+// 購入方法と馬券種別によるUI切り替え
+function updateBuyMethod() {
+    const betType = document.getElementById('bet_type').value;
+    const buyMethod = document.querySelector('input[name="buy_method"]:checked').value;
+    
+    // 全ての入力エリアを非表示
+    document.querySelectorAll('.bet-input-type').forEach(el => el.style.display = 'none');
+    
+    // チェックを全てリセット
+    document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        if (!cb.name.startsWith('mark_')) cb.checked = false;
+    });
+    document.querySelectorAll('.horse-checkbox-label, .horse-checkbox-label-small').forEach(label => {
+        label.classList.remove('selected');
+    });
+    
+    // 隠しフィールドを更新
+    document.getElementById('buy_method_input').value = buyMethod;
+    
+    // 対応する入力エリアを表示
+    if (betType === 'tansho' || betType === 'fukusho') {
+        document.getElementById('tanfuku-input').style.display = 'block';
+    } else if (betType === 'umaren' || betType === 'wide') {
+        if (buyMethod === 'normal') {
+            document.getElementById('umaren-normal-input').style.display = 'block';
+        } else if (buyMethod === 'box') {
+            document.getElementById('umaren-box-input').style.display = 'block';
+        } else if (buyMethod === 'formation') {
+            document.getElementById('umaren-formation-input').style.display = 'block';
+        }
+    } else if (betType === 'umatan') {
+        if (buyMethod === 'normal') {
+            document.getElementById('umatan-normal-input').style.display = 'block';
+        } else if (buyMethod === 'formation') {
+            document.getElementById('umatan-formation-input').style.display = 'block';
+        }
+    } else if (betType === 'sanrenpuku') {
+        if (buyMethod === 'normal') {
+            document.getElementById('sanrenpuku-normal-input').style.display = 'block';
+        } else if (buyMethod === 'box') {
+            document.getElementById('sanrenpuku-box-input').style.display = 'block';
+        } else if (buyMethod === 'formation') {
+            document.getElementById('sanrenpuku-formation-input').style.display = 'block';
+        }
+    } else if (betType === 'sanrentan') {
+        if (buyMethod === 'normal') {
+            document.getElementById('sanrentan-normal-input').style.display = 'block';
+        } else if (buyMethod === 'formation') {
+            document.getElementById('sanrentan-formation-input').style.display = 'block';
+        }
+    }
+    
+    // 購入方法の選択肢を更新
+    updateBuyMethodOptions();
+}
+
+// 馬券種別による購入方法選択肢の表示制御
 function updateBuyMethodOptions() {
-const betType = document.getElementById('bet_type').value;
-const isTanFuku = betType === 'tansho' || betType === 'fukusho';
-document.getElementById('box-option').style.display = isTanFuku ? 'none' : 'flex';
-document.getElementById('formation-option').style.display = isTanFuku ? 'none' : 'flex';
-if (isTanFuku) {
-document.querySelector('input[name="buy_method"][value="normal"]').checked = true;
-document.querySelectorAll('.buy-method-inputs').forEach(div => div.style.display = 'none');
-document.getElementById('normal-input').style.display = 'block';
+    const betType = document.getElementById('bet_type').value;
+    const isTanFuku = betType === 'tansho' || betType === 'fukusho';
+    const is2ren = betType === 'umaren' || betType === 'wide';
+    const isUmatan = betType === 'umatan';
+    const is3renpuku = betType === 'sanrenpuku';
+    const is3rentan = betType === 'sanrentan';
+    
+    // ボックスとフォーメーションの表示制御
+    document.getElementById('box-option').style.display = (is2ren || is3renpuku) ? 'flex' : 'none';
+    document.getElementById('formation-option').style.display = (is2ren || isUmatan || is3renpuku || is3rentan) ? 'flex' : 'none';
+    
+    // 単勝・複勝の場合は通常のみ
+    if (isTanFuku) {
+        document.querySelector('input[name="buy_method"][value="normal"]').checked = true;
+    }
 }
+
+// 馬券種別変更時
+document.getElementById('bet_type').addEventListener('change', function() {
+    updateBuyMethodOptions();
+    document.querySelector('input[name="buy_method"][value="normal"]').checked = true;
+    updateBuyMethod();
+});
+
+// ラベルのハイライト処理（共通関数）
+function highlightLabels(checkboxes, labelClass) {
+    checkboxes.forEach(cb => {
+        const label = cb.closest('.' + labelClass);
+        if (label) {
+            if (cb.checked) label.classList.add('selected');
+            else label.classList.remove('selected');
+        }
+    });
 }
-function updateFormationInputs() {
-const betType = document.getElementById('bet_type').value;
-const isUmatan = betType === 'umatan';
-const is3ren = betType === 'sanrenpuku' || betType === 'sanrentan';
-const is2ren = betType === 'umaren' || betType === 'wide';
-document.getElementById('formation-umatan').style.display = isUmatan ? 'block' : 'none';
-document.getElementById('formation-2ren').style.display = is2ren ? 'block' : 'none';
-document.getElementById('formation-3ren').style.display = is3ren ? 'block' : 'none';
+
+// 単勝・複勝の選択処理
+function updateTanfukuSelection() {
+    const checkboxes = document.querySelectorAll('input[name="tanfuku_horse"]');
+    const checked = Array.from(checkboxes).filter(cb => cb.checked);
+    
+    // 1頭のみ選択可能
+    if (checked.length > 1) {
+        checked[0].checked = false;
+    }
+    
+    highlightLabels(checkboxes, 'horse-checkbox-label');
+    
+    const selected = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+    document.getElementById('horses_input').value = selected.join(',');
+    document.getElementById('bet_count').value = selected.length;
 }
-document.getElementById('bet_type').addEventListener('change', () => {
+
+// 馬連・ワイド：通常
+function updateUmarenNormalSelection() {
+    const checkboxes = document.querySelectorAll('input[name="umaren_normal_horse"]');
+    const checked = Array.from(checkboxes).filter(cb => cb.checked);
+    
+    // 2頭のみ
+    if (checked.length > 2) {
+        checked[0].checked = false;
+    }
+    
+    highlightLabels(checkboxes, 'horse-checkbox-label');
+    
+    const selected = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+    document.getElementById('horses_input').value = selected.join(',');
+    document.getElementById('bet_count').value = selected.length === 2 ? 1 : 0;
+}
+
+// 馬連・ワイド：ボックス
+function updateUmarenBoxSelection() {
+    const checkboxes = document.querySelectorAll('input[name="umaren_box_horse"]');
+    const checked = Array.from(checkboxes).filter(cb => cb.checked);
+    const n = checked.length;
+    const count = n >= 2 ? (n * (n - 1)) / 2 : 0;
+    
+    highlightLabels(checkboxes, 'horse-checkbox-label');
+    
+    document.getElementById('horses_input').value = checked.map(cb => cb.value).join(',');
+    document.getElementById('bet_count').value = count;
+    document.getElementById('umaren-box-count').textContent = count + '点';
+    const amount = parseInt(document.getElementById('amount').value) || 100;
+    document.getElementById('umaren-box-amount').textContent = amount;
+}
+
+// 馬連・ワイド：フォーメーション（軸馬-相手馬）
+function updateUmarenFormationSelection() {
+    const axis = Array.from(document.querySelectorAll('input[name="umaren_form_axis"]:checked'));
+    const partners = Array.from(document.querySelectorAll('input[name="umaren_form_partner"]:checked'));
+    
+    // 軸馬×相手馬の組み合わせのみ（軸馬同士は除外）
+    let count = 0;
+    const combinations = new Set();
+    
+    // 軸馬×相手馬
+    axis.forEach(a => {
+        partners.forEach(p => {
+            if (a.value !== p.value) {
+                const sorted = [a.value, p.value].sort((a, b) => parseInt(a) - parseInt(b)).join(',');
+                combinations.add(sorted);
+            }
+        });
+    });
+    
+    count = combinations.size;
+    
+    document.getElementById('horses_input').value = axis.map(a => a.value).join(',') + '-' + partners.map(p => p.value).join(',');
+    document.getElementById('bet_count').value = count;
+    document.getElementById('umaren-form-count').textContent = count + '点';
+    const amount = parseInt(document.getElementById('amount').value) || 100;
+    document.getElementById('umaren-form-amount').textContent = amount;
+}
+
+// 馬単：通常
+function updateUmatanNormalSelection() {
+    const first = document.querySelectorAll('input[name="umatan_normal_first"]');
+    const second = document.querySelectorAll('input[name="umatan_normal_second"]');
+    const firstChecked = Array.from(first).filter(cb => cb.checked);
+    const secondChecked = Array.from(second).filter(cb => cb.checked);
+    
+    // 各1頭のみ
+    if (firstChecked.length > 1) firstChecked[0].checked = false;
+    if (secondChecked.length > 1) secondChecked[0].checked = false;
+    
+    highlightLabels(first, 'horse-checkbox-label');
+    highlightLabels(second, 'horse-checkbox-label');
+    
+    const firstVals = Array.from(first).filter(cb => cb.checked).map(cb => cb.value);
+    const secondVals = Array.from(second).filter(cb => cb.checked).map(cb => cb.value);
+    
+    const count = (firstVals.length === 1 && secondVals.length === 1 && firstVals[0] !== secondVals[0]) ? 1 : 0;
+    
+    document.getElementById('horses_input').value = firstVals.join(',') + '-' + secondVals.join(',');
+    document.getElementById('bet_count').value = count;
+}
+
+// 馬単：フォーメーション
+function updateUmatanFormationSelection() {
+    const first = Array.from(document.querySelectorAll('input[name="umatan_form_first"]:checked'));
+    const second = Array.from(document.querySelectorAll('input[name="umatan_form_second"]:checked'));
+    
+    let count = 0;
+    first.forEach(f => {
+        second.forEach(s => {
+            if (f.value !== s.value) count++;
+        });
+    });
+    
+    highlightLabels(document.querySelectorAll('input[name="umatan_form_first"]'), 'horse-checkbox-label');
+    highlightLabels(document.querySelectorAll('input[name="umatan_form_second"]'), 'horse-checkbox-label');
+    
+    document.getElementById('horses_input').value = first.map(f => f.value).join(',') + '-' + second.map(s => s.value).join(',');
+    document.getElementById('bet_count').value = count;
+    document.getElementById('umatan-form-count').textContent = count + '点';
+    const amount = parseInt(document.getElementById('amount').value) || 100;
+    document.getElementById('umatan-form-amount').textContent = amount;
+}
+
+// 3連複：通常
+function updateSanrenpukuNormalSelection() {
+    const checkboxes = document.querySelectorAll('input[name="sanrenpuku_normal_horse"]');
+    const checked = Array.from(checkboxes).filter(cb => cb.checked);
+    
+    // 3頭のみ
+    if (checked.length > 3) {
+        checked[0].checked = false;
+    }
+    
+    highlightLabels(checkboxes, 'horse-checkbox-label');
+    
+    const selected = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
+    document.getElementById('horses_input').value = selected.join(',');
+    document.getElementById('bet_count').value = selected.length === 3 ? 1 : 0;
+}
+
+// 3連複：ボックス
+function updateSanrenpukuBoxSelection() {
+    const checkboxes = document.querySelectorAll('input[name="sanrenpuku_box_horse"]');
+    const checked = Array.from(checkboxes).filter(cb => cb.checked);
+    const n = checked.length;
+    const count = n >= 3 ? (n * (n - 1) * (n - 2)) / 6 : 0;
+    
+    highlightLabels(checkboxes, 'horse-checkbox-label');
+    
+    document.getElementById('horses_input').value = checked.map(cb => cb.value).join(',');
+    document.getElementById('bet_count').value = count;
+    document.getElementById('sanrenpuku-box-count').textContent = count + '点';
+    const amount = parseInt(document.getElementById('amount').value) || 100;
+    document.getElementById('sanrenpuku-box-amount').textContent = amount;
+}
+
+// 3連複：フォーメーション（3列それぞれから選んで組み合わせ）
+function updateSanrenpukuFormationSelection() {
+    const first = Array.from(document.querySelectorAll('input[name="sanrenpuku_form_first"]:checked'));
+    const second = Array.from(document.querySelectorAll('input[name="sanrenpuku_form_second"]:checked'));
+    const third = Array.from(document.querySelectorAll('input[name="sanrenpuku_form_third"]:checked'));
+    
+    // 3連複フォーメーション：各列から1頭ずつ選び、重複を除いた組み合わせをカウント
+    let count = 0;
+    const combinations = new Set();
+    
+    first.forEach(f => {
+        second.forEach(s => {
+            third.forEach(t => {
+                const vals = [f.value, s.value, t.value];
+                // 重複チェック
+                if (new Set(vals).size === 3) {
+                    // 3連複は順序関係なし、ソートして一意にする
+                    const sorted = vals.sort((a, b) => a - b).join('-');
+                    combinations.add(sorted);
+                }
+            });
+        });
+    });
+    
+    count = combinations.size;
+    
+    highlightLabels(document.querySelectorAll('input[name="sanrenpuku_form_first"]'), 'horse-checkbox-label-small');
+    highlightLabels(document.querySelectorAll('input[name="sanrenpuku_form_second"]'), 'horse-checkbox-label-small');
+    highlightLabels(document.querySelectorAll('input[name="sanrenpuku_form_third"]'), 'horse-checkbox-label-small');
+    
+    document.getElementById('horses_input').value = 
+        first.map(f => f.value).join(',') + '-' + 
+        second.map(s => s.value).join(',') + '-' + 
+        third.map(t => t.value).join(',');
+    document.getElementById('bet_count').value = count;
+    document.getElementById('sanrenpuku-form-count').textContent = count + '点';
+    const amount = parseInt(document.getElementById('amount').value) || 100;
+    document.getElementById('sanrenpuku-form-amount').textContent = amount;
+    document.getElementById('sanrenpuku-form-total').textContent = (count * amount).toLocaleString();
+}
+
+// 3連単：通常
+function updateSanrentanNormalSelection() {
+    const first = document.querySelectorAll('input[name="sanrentan_normal_first"]');
+    const second = document.querySelectorAll('input[name="sanrentan_normal_second"]');
+    const third = document.querySelectorAll('input[name="sanrentan_normal_third"]');
+    
+    const firstChecked = Array.from(first).filter(cb => cb.checked);
+    const secondChecked = Array.from(second).filter(cb => cb.checked);
+    const thirdChecked = Array.from(third).filter(cb => cb.checked);
+    
+    // 各1頭のみ
+    if (firstChecked.length > 1) firstChecked[0].checked = false;
+    if (secondChecked.length > 1) secondChecked[0].checked = false;
+    if (thirdChecked.length > 1) thirdChecked[0].checked = false;
+    
+    highlightLabels(first, 'horse-checkbox-label-small');
+    highlightLabels(second, 'horse-checkbox-label-small');
+    highlightLabels(third, 'horse-checkbox-label-small');
+    
+    const firstVals = Array.from(first).filter(cb => cb.checked).map(cb => cb.value);
+    const secondVals = Array.from(second).filter(cb => cb.checked).map(cb => cb.value);
+    const thirdVals = Array.from(third).filter(cb => cb.checked).map(cb => cb.value);
+    
+    const vals = [...firstVals, ...secondVals, ...thirdVals];
+    const count = (new Set(vals).size === 3 && vals.length === 3) ? 1 : 0;
+    
+    document.getElementById('horses_input').value = firstVals.join(',') + '-' + secondVals.join(',') + '-' + thirdVals.join(',');
+    document.getElementById('bet_count').value = count;
+}
+
+// 3連単：フォーメーション
+function updateSanrentanFormationSelection() {
+    const first = Array.from(document.querySelectorAll('input[name="sanrentan_form_first"]:checked'));
+    const second = Array.from(document.querySelectorAll('input[name="sanrentan_form_second"]:checked'));
+    const third = Array.from(document.querySelectorAll('input[name="sanrentan_form_third"]:checked'));
+    
+    // 3連単フォーメーション：重複を除いた組み合わせ数
+    let count = 0;
+    first.forEach(f => {
+        second.forEach(s => {
+            if (f.value !== s.value) {
+                third.forEach(t => {
+                    if (t.value !== f.value && t.value !== s.value) {
+                        count++;
+                    }
+                });
+            }
+        });
+    });
+    
+    highlightLabels(document.querySelectorAll('input[name="sanrentan_form_first"]'), 'horse-checkbox-label-small');
+    highlightLabels(document.querySelectorAll('input[name="sanrentan_form_second"]'), 'horse-checkbox-label-small');
+    highlightLabels(document.querySelectorAll('input[name="sanrentan_form_third"]'), 'horse-checkbox-label-small');
+    
+    document.getElementById('horses_input').value = 
+        first.map(f => f.value).join(',') + '-' + 
+        second.map(s => s.value).join(',') + '-' + 
+        third.map(t => t.value).join(',');
+    document.getElementById('bet_count').value = count;
+    document.getElementById('sanrentan-form-count').textContent = count + '点';
+    const amount = parseInt(document.getElementById('amount').value) || 100;
+    document.getElementById('sanrentan-form-amount').textContent = amount;
+    document.getElementById('sanrentan-form-total').textContent = (count * amount).toLocaleString();
+}
+
+// 金額変更時の再計算
+document.getElementById('amount').addEventListener('input', function() {
+    const betType = document.getElementById('bet_type').value;
+    const buyMethod = document.querySelector('input[name="buy_method"]:checked').value;
+    
+    if (buyMethod === 'box' && (betType === 'umaren' || betType === 'wide')) {
+        updateUmarenBoxSelection();
+    } else if (buyMethod === 'formation' && (betType === 'umaren' || betType === 'wide')) {
+        updateUmarenFormationSelection();
+    } else if (buyMethod === 'formation' && betType === 'umatan') {
+        updateUmatanFormationSelection();
+    } else if (buyMethod === 'box' && betType === 'sanrenpuku') {
+        updateSanrenpukuBoxSelection();
+    } else if (buyMethod === 'formation' && betType === 'sanrenpuku') {
+        updateSanrenpukuFormationSelection();
+    } else if (buyMethod === 'formation' && betType === 'sanrentan') {
+        updateSanrentanFormationSelection();
+    }
+});
+
+// 初期表示
+document.getElementById('tanfuku-input').style.display = 'block';
 updateBuyMethodOptions();
-updateFormationInputs();
-});
-document.querySelectorAll('input[name="buy_method"]').forEach(radio => {
-radio.addEventListener('change', (e) => {
-document.querySelectorAll('.buy-method-inputs').forEach(div => div.style.display = 'none');
-document.getElementById(e.target.value + '-input').style.display = 'block';
-updateFormationInputs();
-});
-});
-updateBuyMethodOptions();
+
+
+
+// 印の保存
 document.getElementById('marks-form').addEventListener('submit', async (e) => {
-e.preventDefault();
-const formData = new FormData(e.target);
-const marks = {};
-for (const [key, value] of formData.entries()) {
-if (key.startsWith('mark_') && value) {
-marks[key.replace('mark_', '')] = value;
-}
-}
-try {
-const r = await fetch('/predictions/<%= race.race_id %>/marks', {
-method: 'POST',
-headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({ marks })
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const marks = {};
+    for (const [key, value] of formData.entries()) {
+        if (key.startsWith('mark_') && value) {
+            marks[key.replace('mark_', '')] = value;
+        }
+    }
+    try {
+        const r = await fetch('/predictions/<%= race.race_id %>/marks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ marks })
+        });
+        alert(r.ok ? '印を保存しました' : 'エラーが発生しました');
+    } catch (error) { alert('エラーが発生しました'); }
 });
-alert(r.ok ? '印を保存しました' : 'エラーが発生しました');
-} catch (error) { alert('エラーが発生しました'); }
-});
+
+// 馬券の追加
 document.getElementById('bet-form').addEventListener('submit', async (e) => {
-e.preventDefault();
-const formData = new FormData(e.target);
-const buyMethod = formData.get('buy_method');
-const betType = formData.get('bet_type');
-let horses, axisHorses, partnerHorses, first, second, third;
-if (buyMethod === 'normal') {
-horses = document.getElementById('horses_input').value;
-} else if (buyMethod === 'box') {
-horses = document.getElementById('box_horses').value;
-} else if (buyMethod === 'formation') {
-if (betType === 'umatan') {
-first = document.getElementById('umatan_first').value;
-second = document.getElementById('umatan_second').value;
-} else if (betType === 'sanrenpuku' || betType === 'sanrentan') {
-first = document.getElementById('first_horses').value;
-second = document.getElementById('second_horses').value;
-third = document.getElementById('third_horses').value;
-} else {
-axisHorses = document.getElementById('axis_horses').value;
-partnerHorses = document.getElementById('partner_horses').value;
-}
-}
-const data = {
-bet_type: betType,
-horses: horses || '',
-amount: formData.get('amount'),
-buy_method: buyMethod,
-axis_horses: axisHorses || '',
-partner_horses: partnerHorses || '',
-first: first || '',
-second: second || '',
-third: third || ''
-};
-try {
-const r = await fetch('/predictions/<%= race.race_id %>/bets', {
-method: 'POST',
-headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify(data)
+    e.preventDefault();
+    const betType = document.getElementById('bet_type').value;
+    const buyMethod = document.getElementById('buy_method_input').value;
+    const horses = document.getElementById('horses_input').value;
+    const betCount = parseInt(document.getElementById('bet_count').value) || 0;
+    const amount = parseInt(document.getElementById('amount').value) || 100;
+
+    if (!horses || betCount === 0) {
+        alert('馬を選択してください');
+        return;
+    }
+
+    const data = {
+        bet_type: betType,
+        horses: horses,
+        amount: amount,
+        buy_method: buyMethod,
+        bet_count: betCount
+    };
+
+    try {
+        const r = await fetch('/predictions/<%= race.race_id %>/bets', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+        const result = await r.json();
+        if (r.ok) {
+            alert(`馬券を追加しました（${betCount}点 × ${amount}円 = ${(betCount * amount).toLocaleString()}円）`);
+            location.reload();
+        } else {
+            alert(result.error || 'エラーが発生しました');
+        }
+    } catch (error) { 
+        console.error(error);
+        alert('エラーが発生しました'); 
+    }
 });
-const result = await r.json();
-if (r.ok) {
-alert(`馬券を追加しました（${result.count}点 × ${data.amount}円 = ${result.total}円）`);
-location.reload();
-} else {
-alert(result.error || 'エラーが発生しました');
-}
-} catch (error) { alert('エラーが発生しました'); }
-});
+
+// 馬券の削除
 async function deleteBet(betId) {
-if (!confirm('この馬券を削除しますか？')) return;
-try {
-const r = await fetch(`/predictions/<%= race.race_id %>/bets/${betId}`, { method: 'DELETE' });
-if (r.ok) { alert('馬券を削除しました'); location.reload(); } else { alert('エラーが発生しました'); }
-} catch (error) { alert('エラーが発生しました'); }
+    if (!confirm('この馬券を削除しますか？')) return;
+    try {
+        const r = await fetch(`/predictions/<%= race.race_id %>/bets/${betId}`, { method: 'DELETE' });
+        if (r.ok) { 
+            alert('馬券を削除しました'); 
+            location.reload(); 
+        } else { 
+            alert('エラーが発生しました'); 
+        }
+    } catch (error) { 
+        console.error(error);
+        alert('エラーが発生しました'); 
+    }
 }
 </script>
 </body>
