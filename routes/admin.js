@@ -484,10 +484,22 @@ router.post('/fetch-race/:race_id', async (req, res) => {
     
     // 出走馬を保存
     for (const horse of horses) {
+      const weightLoad = parseFloat(horse.weight) || null;
+      
       await pool.query(
-        `INSERT INTO horses (race_id, waku, umaban, horse_name, jockey, trainer) 
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [race_id, horse.waku, horse.umaban, horse.horse_name, horse.jockey, horse.trainer]
+        `INSERT INTO horses (race_id, waku, umaban, horse_name, age_sex, weight_load, jockey, stable, horse_weight) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [
+          race_id, 
+          horse.waku, 
+          horse.umaban, 
+          horse.horse_name, 
+          horse.sex_age || '',
+          weightLoad,
+          horse.jockey, 
+          horse.trainer,  // trainerはstableカラムに対応
+          horse.horse_weight || ''
+        ]
       );
     }
     
