@@ -282,6 +282,7 @@ router.post('/update-race-times', async (req, res) => {
 router.post('/fetch-result/:race_id', async (req, res) => {
   const axios = require('axios');
   const cheerio = require('cheerio');
+  const iconv = require('iconv-lite');
   const { race_id } = req.params;
   
   try {
@@ -289,16 +290,20 @@ router.post('/fetch-result/:race_id', async (req, res) => {
     const url = `https://race.netkeiba.com/race/result.html?race_id=${race_id}`;
     console.log('Fetching from:', url);
     
-    // HTMLを取得
+    // HTMLを取得（EUC-JPでエンコードされているのでバイナリで取得）
     const response = await axios.get(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       },
+      responseType: 'arraybuffer',
       timeout: 15000 // 15秒でタイムアウト
     });
     
+    // EUC-JPからUTF-8に変換
+    const html = iconv.decode(Buffer.from(response.data), 'EUC-JP');
+    
     // HTMLをパース
-    const $ = cheerio.load(response.data);
+    const $ = cheerio.load(html);
     
     // 結果テーブルを取得（複数のセレクタを試す）
     let $table = $('.RaceTable01 tbody tr');
@@ -383,6 +388,7 @@ router.post('/fetch-result/:race_id', async (req, res) => {
 router.post('/fetch-race/:race_id', async (req, res) => {
   const axios = require('axios');
   const cheerio = require('cheerio');
+  const iconv = require('iconv-lite');
   const { race_id } = req.params;
   
   try {
@@ -390,30 +396,47 @@ router.post('/fetch-race/:race_id', async (req, res) => {
     const url = `https://race.netkeiba.com/race/shutuba.html?race_id=${race_id}`;
     console.log('Fetching race data from:', url);
     
-    // HTMLを取得
+    // HTMLを取得（EUC-JPでエンコードされているのでバイナリで取得）
     const response = await axios.get(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
       },
+      responseType: 'arraybuffer',
       timeout: 15000 // 15秒でタイムアウト
     });
     
+    // EUC-JPからUTF-8に変換
+    const html = iconv.decode(Buffer.from(response.data), 'EUC-JP');
+    
     // HTMLをパース
-    const $ = cheerio.load(response.data);
+    const $ = cheerio.load(html);
     
     // レース名を取得
     const raceName = $('.RaceName').text().trim() || 
                      $('h1').first().text().trim() ||
                      'レース名取得失敗';
     
-    // 開催日を取得（race_idから抽出）
-    const year = race_id.substring(0, 4);
-    const month = race_id.substring(4, 6);
-    const day = race_id.substring(8, 10);
-    const raceDate = `${year}-${month}-${day}`;
+    // 開催日を取得（HTMLから）
+    let raceDate = '';
+    
+    // パターン1: RaceData01から日付を取得
+    const raceDataText = $('.RaceData01').text();
+    const dateMatch = raceDataText.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+    
+    if (dateMatch) {
+      const year = dateMatch[1];
+      const month = dateMatch[2].padStart(2, '0');
+      const day = dateMatch[3].padStart(2, '0');
+      raceDate = `${year}-${month}-${day}`;
+    } else {
+      // パターン2: race_idから年だけ取得して、他はフォールバック
+      console.log('[警告] HTMLから日付が取得できませんでした');
+      const year = race_id.substring(0, 4);
+      raceDate = `${year}-01-01`;  // フォールバック値
+    }
     
     // 競馬場を取得（race_idから判定）
-    const venueCode = race_id.substring(6, 8);
+    const venueCode = race_id.substring(8, 10);
     const venueMap = {
       '01': '札幌', '02': '函館', '03': '福島', '04': '新潟',
       '05': '東京', '06': '中山', '07': '中京', '08': '京都',
