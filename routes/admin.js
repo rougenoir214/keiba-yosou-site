@@ -474,11 +474,58 @@ router.post('/fetch-race/:race_id', async (req, res) => {
       });
     }
     
+    // 方法4: 全テキストから探す（最終手段・Pythonと同じ）
+    if (!raceDate) {
+      const fullText = $.text();
+      const match = fullText.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+      if (match) {
+        const year = match[1];
+        const month = match[2].padStart(2, '0');
+        const day = match[3].padStart(2, '0');
+        raceDate = `${year}-${month}-${day}`;
+        console.log('[レース日付取得(全文検索)]', raceDate);
+      }
+    }
+    
     // 日付が取得できなかった場合の処理
     if (!raceDate) {
       console.log('[警告] HTMLから日付が取得できませんでした');
       const year = race_id.substring(0, 4);
       raceDate = `${year}-01-01`;  // フォールバック値
+    }
+    
+    // 発走時刻を取得（HTMLから）
+    let raceTime = '15:00';  // デフォルト値
+    
+    const fullText = $.text();
+    
+    // パターン1: "15:30発走" 形式（発走の直前の時刻）
+    let timeMatch = fullText.match(/(\d{1,2}):(\d{2})\s*発走/);
+    
+    if (timeMatch) {
+      const hour = parseInt(timeMatch[1]);
+      const minute = timeMatch[2];
+      // 競馬の時間帯（10:00-18:00）内かチェック
+      if (hour >= 10 && hour <= 18) {
+        raceTime = `${hour.toString().padStart(2, '0')}:${minute}`;
+        console.log('[発走時刻取得(コロン形式)]', raceTime);
+      }
+    } else {
+      // パターン2: "15時30分発走" 形式
+      timeMatch = fullText.match(/(\d{1,2})時(\d{2})分\s*発走/);
+      if (timeMatch) {
+        const hour = parseInt(timeMatch[1]);
+        const minute = timeMatch[2];
+        // 競馬の時間帯（10:00-18:00）内かチェック
+        if (hour >= 10 && hour <= 18) {
+          raceTime = `${hour.toString().padStart(2, '0')}:${minute}`;
+          console.log('[発走時刻取得(時分形式)]', raceTime);
+        }
+      }
+    }
+    
+    if (raceTime === '15:00') {
+      console.log('[警告] HTMLから発走時刻が取得できませんでした。デフォルト値を使用:', raceTime);
     }
     
     // 競馬場を取得（race_idから判定）
@@ -492,7 +539,7 @@ router.post('/fetch-race/:race_id', async (req, res) => {
     };
     const venue = venueMap[venueCode] || '不明';
     
-    console.log('レース情報:', { raceName, raceDate, venue });
+    console.log('レース情報:', { raceName, raceDate, raceTime, venue });
     
     // 出走馬テーブルを取得
     const horses = [];
@@ -557,7 +604,7 @@ router.post('/fetch-race/:race_id', async (req, res) => {
          race_date = EXCLUDED.race_date,
          race_time = EXCLUDED.race_time,
          venue = EXCLUDED.venue`,
-      [race_id, raceName, raceDate, '23:59', venue]
+      [race_id, raceName, raceDate, raceTime, venue]
     );
     
     // 既存の出走馬データを削除
