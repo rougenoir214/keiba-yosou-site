@@ -89,8 +89,9 @@ router.post('/import', upload.single('csvfile'), async (req, res) => {
              ON CONFLICT (race_id) DO UPDATE SET
                race_name = EXCLUDED.race_name,
                race_date = EXCLUDED.race_date,
+               race_time = EXCLUDED.race_time,
                venue = EXCLUDED.venue`,
-            [raceId, raceName, raceDate, '15:00', venue]
+            [raceId, raceName, raceDate, '23:59', venue]
           );
 
           // 出走馬情報を保存
@@ -258,6 +259,23 @@ router.post('/import-payouts', upload.single('payoutsfile'), async (req, res) =>
         res.status(500).send('エラーが発生しました: ' + error.message);
       }
     });
+});
+
+// レース時刻を一括更新（15:00 → 23:59）
+router.post('/update-race-times', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      UPDATE races 
+      SET race_time = '23:59' 
+      WHERE race_time = '15:00'
+      RETURNING race_id, race_name, race_date, race_time
+    `);
+    
+    res.send(`成功: ${result.rows.length}件のレース時刻を更新しました（15:00 → 23:59）`);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send('エラーが発生しました: ' + error.message);
+  }
 });
 
 module.exports = router;

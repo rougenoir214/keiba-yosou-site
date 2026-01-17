@@ -54,6 +54,36 @@ td { padding: 12px; border-bottom: 1px solid #eee; }
 .horse-checkbox-label-small input[type="checkbox"] { margin-right: 5px; }
 .selection-info { margin-top: 10px; padding: 10px; background: #fff3cd; border-radius: 5px; font-weight: bold; color: #856404; }
 .bet-input-type { display: none; }
+
+/* スマホ対応 */
+@media (max-width: 768px) {
+    body { padding: 10px; }
+    .container { max-width: 100%; }
+    .header, .section { padding: 15px; }
+    .header h1 { font-size: 1.3rem; }
+    .section h2 { font-size: 1.1rem; }
+    
+    /* テーブルのレスポンシブ対応 */
+    table { font-size: 0.85rem; display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    th, td { padding: 8px 4px; white-space: nowrap; }
+    
+    /* 枠番を小さく */
+    .waku { width: 25px !important; height: 25px !important; font-size: 0.75rem !important; line-height: 25px !important; }
+    
+    /* フォーム要素 */
+    .form-group select, .form-group input { font-size: 16px; /* iOSのズーム防止 */ }
+    
+    /* ボタン */
+    .btn { width: 100%; margin: 5px 0; padding: 12px; font-size: 16px; }
+    
+    /* 馬券リスト */
+    .bet-item { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .bet-item button { width: 100%; }
+    
+    /* 購入方法選択 */
+    .buy-method-options { display: flex; flex-direction: column; gap: 10px; }
+    .buy-method-options label { margin: 0; padding: 10px; background: #f0f0f0; border-radius: 5px; }
+}
 </style>
 </head>
 <body>
@@ -61,6 +91,7 @@ td { padding: 12px; border-bottom: 1px solid #eee; }
 <div class="header">
 <h1>📝 予想入力 - <%= race.race_name %></h1>
 <p>ユーザー: <%= user.display_name %></p>
+<p style="color: #f44336; font-weight: bold;">⏰ レース開始時刻: <%= race.race_date %> <%= race.race_time %> （開始時刻以降は購入不可）</p>
 <a href="/races/<%= race.race_id %>" class="back-link">← 出馬表に戻る</a>
 </div>
 <div class="section">
