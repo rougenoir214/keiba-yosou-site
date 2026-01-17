@@ -293,7 +293,8 @@ router.post('/fetch-result/:race_id', async (req, res) => {
     const response = await axios.get(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
+      },
+      timeout: 15000 // 15秒でタイムアウト
     });
     
     // HTMLをパース
@@ -366,7 +367,14 @@ router.post('/fetch-result/:race_id', async (req, res) => {
     res.send(`成功: ${uniqueResults.length}頭の結果を取得しました`);
     
   } catch (error) {
-    console.error('Error fetching results:', error.message);
+    console.error('=== Error fetching results ===');
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    if (error.response) {
+      console.error('Response status:', error.response.status);
+      console.error('Response data:', error.response.data);
+    }
+    console.error('==============================');
     res.status(500).send('エラーが発生しました: ' + error.message);
   }
 });
@@ -386,7 +394,8 @@ router.post('/fetch-race/:race_id', async (req, res) => {
     const response = await axios.get(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-      }
+      },
+      timeout: 15000 // 15秒でタイムアウト
     });
     
     // HTMLをパース
@@ -506,7 +515,14 @@ router.post('/fetch-race/:race_id', async (req, res) => {
     res.send(`成功: ${raceName} (${horses.length}頭) を登録しました`);
     
   } catch (error) {
-    console.error('Error fetching race data:', error.message);
+    console.error('=== Error fetching race data ===');
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    if (error.response) {
+      console.error('Response status:', error.response.status);
+      console.error('Response data:', error.response.data);
+    }
+    console.error('================================');
     res.status(500).send('エラーが発生しました: ' + error.message);
   }
 });
