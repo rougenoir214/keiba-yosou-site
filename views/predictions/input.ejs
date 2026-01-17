@@ -64,8 +64,8 @@ td { padding: 12px; border-bottom: 1px solid #eee; }
     .section h2 { font-size: 1.1rem; }
     
     /* テーブルのレスポンシブ対応 */
-    table { font-size: 0.85rem; display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-    th, td { padding: 8px 4px; white-space: nowrap; }
+    table { font-size: 0.75rem; display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; min-width: 100%; }
+    th, td { padding: 6px 3px; white-space: normal !important; word-wrap: break-word; }
     
     /* 枠番を小さく */
     .waku { width: 25px !important; height: 25px !important; font-size: 0.75rem !important; line-height: 25px !important; }
@@ -81,8 +81,18 @@ td { padding: 12px; border-bottom: 1px solid #eee; }
     .bet-item button { width: 100%; }
     
     /* 購入方法選択 */
-    .buy-method-options { display: flex; flex-direction: column; gap: 10px; }
-    .buy-method-options label { margin: 0; padding: 10px; background: #f0f0f0; border-radius: 5px; }
+    .buy-method-options { 
+        display: flex; 
+        flex-direction: column; 
+        gap: 10px; 
+    }
+    .buy-method-option { 
+        margin: 0 !important; 
+        padding: 15px !important; 
+        min-width: 100% !important;
+        flex: none !important;
+        font-size: 16px !important;
+    }
 }
 </style>
 </head>
@@ -139,15 +149,18 @@ td { padding: 12px; border-bottom: 1px solid #eee; }
 </div>
 <div class="form-group" id="buy-method-group">
 <label>購入方法</label>
-<div style="display: flex; gap: 20px;">
-<label style="display: flex; align-items: center; gap: 5px;">
-<input type="radio" name="buy_method" value="normal" checked onchange="updateBuyMethod()"> 通常
+<div class="buy-method-options" style="display: flex; gap: 10px; flex-wrap: wrap;">
+<label class="buy-method-option" style="flex: 1; min-width: 100px; padding: 12px; border: 3px solid #e0e0e0; border-radius: 8px; cursor: pointer; text-align: center; transition: all 0.2s; background: white;">
+<input type="radio" name="buy_method" value="normal" checked onchange="updateBuyMethod()" style="margin-right: 8px;">
+<span style="font-weight: bold;">通常</span>
 </label>
-<label style="display: flex; align-items: center; gap: 5px;" id="box-option">
-<input type="radio" name="buy_method" value="box" onchange="updateBuyMethod()"> ボックス
+<label class="buy-method-option" id="box-option" style="flex: 1; min-width: 100px; padding: 12px; border: 3px solid #e0e0e0; border-radius: 8px; cursor: pointer; text-align: center; transition: all 0.2s; background: white;">
+<input type="radio" name="buy_method" value="box" onchange="updateBuyMethod()" style="margin-right: 8px;">
+<span style="font-weight: bold;">ボックス</span>
 </label>
-<label style="display: flex; align-items: center; gap: 5px;" id="formation-option">
-<input type="radio" name="buy_method" value="formation" onchange="updateBuyMethod()"> フォーメーション
+<label class="buy-method-option" id="formation-option" style="flex: 1; min-width: 100px; padding: 12px; border: 3px solid #e0e0e0; border-radius: 8px; cursor: pointer; text-align: center; transition: all 0.2s; background: white;">
+<input type="radio" name="buy_method" value="formation" onchange="updateBuyMethod()" style="margin-right: 8px;">
+<span style="font-weight: bold;">フォーメーション</span>
 </label>
 </div>
 </div>
@@ -602,6 +615,20 @@ function updateBuyMethod() {
     const betType = document.getElementById('bet_type').value;
     const buyMethod = document.querySelector('input[name="buy_method"]:checked').value;
     
+    // 購入方法の選択状態を視覚的にハイライト
+    document.querySelectorAll('.buy-method-option').forEach(label => {
+        const radio = label.querySelector('input[type="radio"]');
+        if (radio && radio.checked) {
+            label.style.borderColor = '#667eea';
+            label.style.background = '#e8f0fe';
+            label.style.fontWeight = 'bold';
+        } else {
+            label.style.borderColor = '#e0e0e0';
+            label.style.background = 'white';
+            label.style.fontWeight = 'normal';
+        }
+    });
+    
     // 全ての入力エリアを非表示
     document.querySelectorAll('.bet-input-type').forEach(el => el.style.display = 'none');
     
@@ -1055,6 +1082,11 @@ async function deleteBet(betId) {
         alert('エラーが発生しました'); 
     }
 }
+
+// ページ読み込み時に初期選択状態をハイライト
+document.addEventListener('DOMContentLoaded', function() {
+    updateBuyMethod();
+});
 </script>
 </body>
 </html>

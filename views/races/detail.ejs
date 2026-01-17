@@ -102,11 +102,19 @@
                 -webkit-overflow-scrolling: touch;
             }
             table {
-                font-size: 0.85rem;
+                font-size: 0.75rem;
+                min-width: 100%;
             }
             th, td {
-                padding: 6px 4px !important;
-                white-space: nowrap;
+                padding: 6px 3px !important;
+                white-space: normal !important; /* 改行を許可 */
+                word-wrap: break-word;
+            }
+            /* 馬名と騎手のセルは幅を広めに */
+            td:nth-child(3), /* 馬名 */
+            td:nth-child(4)  /* 騎手 */ {
+                min-width: 60px;
+            }
             }
             .waku {
                 width: 20px !important;
