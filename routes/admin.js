@@ -17,12 +17,12 @@ const requireAdmin = (req, res, next) => {
 };
 
 // CSVインポートページ
-router.get('/import', (req, res) => {
-  res.render('import');
+router.get('/import', requireAdmin, (req, res) => {
+  res.render('import', { user: req.session.user });
 });
 
 // CSVアップロード処理
-router.post('/import', upload.single('csvfile'), async (req, res) => {
+router.post('/import', requireAdmin, upload.single('csvfile'), async (req, res) => {
   if (!req.file) {
     return res.status(400).send('ファイルがアップロードされていません');
   }
@@ -155,120 +155,6 @@ router.post('/import', upload.single('csvfile'), async (req, res) => {
 
 module.exports = router;
 // 結果インポートページ
-router.get('/import-results', (req, res) => {
-  res.render('import-results');
-});
-
-// 結果CSVアップロード処理
-router.post('/import-results', upload.single('resultsfile'), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).send('ファイルがアップロードされていません');
-  }
-
-  const results = [];
-
-  fs.createReadStream(req.file.path)
-    .pipe(csv())
-    .on('data', (data) => results.push(data))
-    .on('end', async () => {
-      try {
-        const getValue = (obj, key) => {
-          for (const [k, v] of Object.entries(obj)) {
-            const cleanKey = k.replace(/^\uFEFF/, '').trim();
-            if (cleanKey === key) return v;
-          }
-          return null;
-        };
-
-        let successCount = 0;
-
-        for (const row of results) {
-          const raceId = getValue(row, 'race_id');
-          const rank = parseInt(getValue(row, '着順'));
-          const umaban = parseInt(getValue(row, '馬番'));
-          const resultTime = getValue(row, 'タイム') || '';
-
-          if (!raceId || isNaN(rank) || isNaN(umaban)) {
-            console.error('無効なデータ:', row);
-            continue;
-          }
-
-          await pool.query(
-            `INSERT INTO results (race_id, umaban, rank, result_time)
-             VALUES ($1, $2, $3, $4)
-             ON CONFLICT (race_id, umaban) DO UPDATE SET
-               rank = EXCLUDED.rank,
-               result_time = EXCLUDED.result_time,
-               updated_at = CURRENT_TIMESTAMP`,
-            [raceId, umaban, rank, resultTime]
-          );
-
-          successCount++;
-        }
-
-        fs.unlinkSync(req.file.path);
-        res.send(`成功: ${successCount}件のレース結果をインポートしました`);
-      } catch (error) {
-        console.error(error);
-        res.status(500).send('エラーが発生しました: ' + error.message);
-      }
-    });
-});
-
-// 払戻金CSVアップロード処理
-router.post('/import-payouts', upload.single('payoutsfile'), async (req, res) => {
-  if (!req.file) {
-    return res.status(400).send('ファイルがアップロードされていません');
-  }
-
-  const results = [];
-
-  fs.createReadStream(req.file.path)
-    .pipe(csv())
-    .on('data', (data) => results.push(data))
-    .on('end', async () => {
-      try {
-        const getValue = (obj, key) => {
-          for (const [k, v] of Object.entries(obj)) {
-            const cleanKey = k.replace(/^\uFEFF/, '').trim();
-            if (cleanKey === key) return v;
-          }
-          return null;
-        };
-
-        let successCount = 0;
-
-        for (const row of results) {
-          const raceId = getValue(row, 'race_id');
-          const betType = getValue(row, '馬券種別');
-          const combination = getValue(row, '組み合わせ');
-          const payout = parseInt(getValue(row, '払戻金'));
-
-          if (!raceId || !betType || !combination || isNaN(payout)) {
-            console.error('無効なデータ:', row);
-            continue;
-          }
-
-          await pool.query(
-            `INSERT INTO race_payouts (race_id, bet_type, combination, payout)
-             VALUES ($1, $2, $3, $4)
-             ON CONFLICT (race_id, bet_type, combination) DO UPDATE SET
-               payout = EXCLUDED.payout`,
-            [raceId, betType, combination, payout]
-          );
-
-          successCount++;
-        }
-
-        fs.unlinkSync(req.file.path);
-        res.send(`成功: ${successCount}件の払戻金をインポートしました`);
-      } catch (error) {
-        console.error(error);
-        res.status(500).send('エラーが発生しました: ' + error.message);
-      }
-    });
-});
-
 // レース時刻を一括更新（15:00 → 23:59）
 router.post('/update-race-times', async (req, res) => {
   try {
