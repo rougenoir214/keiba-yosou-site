@@ -56,9 +56,11 @@ tr.no-rank td { color: #999; }
 <h1>🏁 <%= race.race_name %> - レース結果</h1>
 <p>📅 <%= new Date(race.race_date).toLocaleDateString('ja-JP') %> | 📍 <%= race.venue %></p>
 <div style="margin-top: 15px;">
+<% if (user && user.is_admin) { %>
 <button onclick="fetchResultFromNetkeiba()" class="btn" style="background: linear-gradient(135deg, #ff9800 0%, #ff5722 100%); box-shadow: 0 4px 15px rgba(255, 152, 0, 0.4);">
 🌐 netkeibaから結果を自動取得
 </button>
+<% } %>
 </div>
 <a href="/races/<%= race.race_id %>" class="back-link">← 出馬表に戻る</a>
 <a href="/races" class="back-link">← レース一覧</a>
@@ -274,19 +276,12 @@ async function fetchResultFromNetkeiba() {
         return;
     }
     
-    // 管理者パスワードを入力
-    const password = prompt('管理者パスワードを入力してください：');
-    if (!password) {
-        return;
-    }
-    
     try {
         const response = await fetch('/admin/fetch-result/<%= race.race_id %>', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ admin_password: password })
+            }
         });
         
         const text = await response.text();

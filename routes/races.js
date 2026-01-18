@@ -14,7 +14,10 @@ router.get('/', async (req, res) => {
       ORDER BY r.race_date DESC, r.race_time DESC
     `);
     
-    res.render('races/index', { races: result.rows });
+    res.render('races/index', { 
+      races: result.rows,
+      user: req.session.user || null
+    });
   } catch (error) {
     console.error(error);
     res.status(500).send('エラーが発生しました');
