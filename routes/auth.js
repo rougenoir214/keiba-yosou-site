@@ -30,7 +30,7 @@ router.post('/register', async (req, res) => {
     
     // ユーザー登録
     const result = await pool.query(
-      'INSERT INTO users (username, password_hash, display_name) VALUES ($1, $2, $3) RETURNING id',
+      'INSERT INTO users (username, password_hash, display_name) VALUES ($1, $2, $3) RETURNING id, is_admin',
       [username, password_hash, display_name]
     );
     
@@ -38,7 +38,8 @@ router.post('/register', async (req, res) => {
     req.session.user = {
       id: result.rows[0].id,
       username: username,
-      display_name: display_name
+      display_name: display_name,
+      is_admin: result.rows[0].is_admin || false
     };
     
     res.redirect('/');
@@ -84,7 +85,8 @@ router.post('/login', async (req, res) => {
     req.session.user = {
       id: user.id,
       username: user.username,
-      display_name: user.display_name
+      display_name: user.display_name,
+      is_admin: user.is_admin || false
     };
     
     res.redirect('/');

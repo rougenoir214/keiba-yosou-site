@@ -8,15 +8,11 @@ const pool = require('../db/connection');
 // アップロード設定
 const upload = multer({ dest: 'uploads/' });
 
-// 管理者パスワード検証ミドルウェア
-const verifyAdminPassword = (req, res, next) => {
-  const adminPassword = process.env.ADMIN_PASSWORD || 'keiba2025';
-  const providedPassword = req.body.admin_password || req.query.admin_password;
-  
-  if (providedPassword !== adminPassword) {
-    return res.status(403).send('管理者パスワードが正しくありません');
+// 管理者権限チェックミドルウェア
+const requireAdmin = (req, res, next) => {
+  if (!req.session.user || !req.session.user.is_admin) {
+    return res.status(403).send('管理者権限が必要です');
   }
-  
   next();
 };
 
@@ -291,7 +287,7 @@ router.post('/update-race-times', async (req, res) => {
 });
 
 // netkeibaからレース結果を自動取得
-router.post('/fetch-result/:race_id', verifyAdminPassword, async (req, res) => {
+router.post('/fetch-result/:race_id', requireAdmin, async (req, res) => {
   const axios = require('axios');
   const cheerio = require('cheerio');
   const iconv = require('iconv-lite');
@@ -539,7 +535,7 @@ router.post('/fetch-result/:race_id', verifyAdminPassword, async (req, res) => {
 });
 
 // netkeibaからレース情報と出走馬を自動取得・登録
-router.post('/fetch-race/:race_id', verifyAdminPassword, async (req, res) => {
+router.post('/fetch-race/:race_id', requireAdmin, async (req, res) => {
   const axios = require('axios');
   const cheerio = require('cheerio');
   const iconv = require('iconv-lite');
@@ -801,7 +797,7 @@ router.post('/fetch-race/:race_id', verifyAdminPassword, async (req, res) => {
 });
 
 // レース削除
-router.post('/delete-race/:race_id', verifyAdminPassword, async (req, res) => {
+router.post('/delete-race/:race_id', requireAdmin, async (req, res) => {
   const { race_id } = req.params;
   
   try {
