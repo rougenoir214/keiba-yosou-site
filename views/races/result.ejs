@@ -135,7 +135,7 @@ if (result.rank) {
 <% currentType = payout.bet_type; %>
 <% } %>
 <div class="payout-item">
-<span><strong><%= payout.combination %></strong></span>
+<span><strong><%= payout.combination.replace(/,/g, '-') %></strong></span>
 <span><%= payout.payout.toLocaleString() %>円</span>
 </div>
 <% }); %>

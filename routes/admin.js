@@ -480,19 +480,19 @@ router.post('/fetch-result/:race_id', verifyAdminPassword, async (req, res) => {
         }
         // その他（単勝、馬連、馬単、3連複、3連単）
         else {
-          const combination = combinationParts[0] || '';
-          const combinationCleaned = combination.replace(/-/g, ',').replace(/→/g, ',');
+          // 改行で分かれている場合はカンマで連結
+          const combination = combinationParts.join(',').replace(/-/g, ',').replace(/→/g, ',');
           
           if (payoutParts.length > 0) {
             try {
               const payout = parseInt(payoutParts[0]);
               payouts.push({
                 bet_type: betType,
-                combination: combinationCleaned,
+                combination: combination,
                 payout: payout
               });
             } catch (e) {
-              console.error(`${betType}解析エラー: ${combinationCleaned} ${payoutParts[0]} - ${e}`);
+              console.error(`${betType}解析エラー: ${combination} ${payoutParts[0]} - ${e}`);
             }
           }
         }

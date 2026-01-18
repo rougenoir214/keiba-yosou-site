@@ -618,7 +618,7 @@ td { padding: 12px; border-bottom: 1px solid #eee; }
 <% const betTypeNames = { 'tansho': '単勝', 'fukusho': '複勝', 'umaren': '馬連', 'umatan': '馬単', 'wide': 'ワイド', 'sanrenpuku': '3連複', 'sanrentan': '3連単' }; let totalAmount = 0; %>
 <% bets.forEach(bet => { totalAmount += bet.amount; %>
 <li class="bet-item">
-<div class="bet-info"><strong><%= betTypeNames[bet.bet_type] %></strong>: <%= bet.horses %> - <%= bet.amount.toLocaleString() %>円</div>
+<div class="bet-info"><strong><%= betTypeNames[bet.bet_type] %></strong>: <%= bet.horses.replace(/,/g, '-') %> - <%= bet.amount.toLocaleString() %>円</div>
 <button class="btn btn-danger" onclick="deleteBet(<%= bet.id %>)">削除</button>
 </li>
 <% }); %>

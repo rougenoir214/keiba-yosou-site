@@ -174,14 +174,8 @@ router.get('/:race_id', requireAuth, async (req, res) => {
 router.post('/:race_id/marks', requireAuth, async (req, res) => {
   const { marks } = req.body;
   try {
-    // レース情報を取得して開始時刻をチェック（PostgreSQL内で日時比較）
-    const raceInfo = await pool.query(`
-      SELECT race_date, race_time,
-             (race_date::text || ' ' || race_time)::timestamp AT TIME ZONE 'Asia/Tokyo' as race_datetime,
-             NOW() AT TIME ZONE 'Asia/Tokyo' as current_time
-      FROM races 
-      WHERE race_id = $1
-    `, [req.params.race_id]);
+    // レース情報を取得
+    const raceInfo = await pool.query('SELECT race_date, race_time FROM races WHERE race_id = $1', [req.params.race_id]);
     
     if (raceInfo.rows.length === 0) {
       return res.status(404).json({ error: 'レースが見つかりません' });
@@ -189,8 +183,22 @@ router.post('/:race_id/marks', requireAuth, async (req, res) => {
     
     const race = raceInfo.rows[0];
     
-    // PostgreSQLで計算したタイムスタンプで比較
-    if (new Date(race.current_time) >= new Date(race.race_datetime)) {
+    // 現在時刻（日本時間）
+    const now = new Date();
+    
+    // レース開始時刻を作成
+    const raceDateTime = new Date(race.race_date);
+    const [hours, minutes] = race.race_time.split(':');
+    raceDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    
+    console.log('=== 印の時刻チェック ===');
+    console.log('現在時刻:', now);
+    console.log('発走時刻:', raceDateTime);
+    console.log('判定:', now < raceDateTime ? '購入可能' : '購入不可');
+    console.log('========================');
+    
+    // 現在時刻が発走時刻以降なら拒否
+    if (now >= raceDateTime) {
       return res.status(400).json({ error: 'レース開始時刻を過ぎているため、予想を入力できません' });
     }
     
@@ -211,14 +219,8 @@ router.post('/:race_id/bets', requireAuth, async (req, res) => {
   const { bet_type, horses, amount, buy_method, axis_horses, partner_horses, first, second, third } = req.body;
   
   try {
-    // レース情報を取得して開始時刻をチェック（PostgreSQL内で日時比較）
-    const raceInfo = await pool.query(`
-      SELECT race_date, race_time,
-             (race_date::text || ' ' || race_time)::timestamp AT TIME ZONE 'Asia/Tokyo' as race_datetime,
-             NOW() AT TIME ZONE 'Asia/Tokyo' as current_time
-      FROM races 
-      WHERE race_id = $1
-    `, [req.params.race_id]);
+    // レース情報を取得
+    const raceInfo = await pool.query('SELECT race_date, race_time FROM races WHERE race_id = $1', [req.params.race_id]);
     
     if (raceInfo.rows.length === 0) {
       return res.status(404).json({ error: 'レースが見つかりません' });
@@ -226,16 +228,22 @@ router.post('/:race_id/bets', requireAuth, async (req, res) => {
     
     const race = raceInfo.rows[0];
     
-    // デバッグログ
-    console.log('=== レース時刻チェック ===');
-    console.log('race_date:', race.race_date);
-    console.log('race_time:', race.race_time);
-    console.log('race_datetime:', race.race_datetime);
-    console.log('current_time:', race.current_time);
+    // 現在時刻
+    const now = new Date();
+    
+    // レース開始時刻を作成
+    const raceDateTime = new Date(race.race_date);
+    const [hours, minutes] = race.race_time.split(':');
+    raceDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    
+    console.log('=== 馬券購入の時刻チェック ===');
+    console.log('現在時刻:', now);
+    console.log('発走時刻:', raceDateTime);
+    console.log('判定:', now < raceDateTime ? '購入可能' : '購入不可');
     console.log('========================');
     
-    // PostgreSQLで計算したタイムスタンプで比較
-    if (new Date(race.current_time) >= new Date(race.race_datetime)) {
+    // 現在時刻が発走時刻以降なら拒否
+    if (now >= raceDateTime) {
       return res.status(400).json({ error: 'レース開始時刻を過ぎているため、馬券を購入できません' });
     }
     
