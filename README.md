@@ -43,6 +43,16 @@ npm install
 cp .env.example .env
 # .envファイルを編集してデータベース接続情報を設定
 
+### 環境変数の説明
+
+- `PORT`: サーバーのポート番号（デフォルト: 3000）
+- `NODE_ENV`: 環境（development / production）
+- `DATABASE_URL`: PostgreSQL接続URL
+- `SESSION_SECRET`: セッション暗号化キー
+- `TEST_MODE`: テストモード（true / false）
+  - `true`: 発走時刻を過ぎても予想印と馬券購入が可能（開発・テスト用）
+  - `false`: 発走時刻以降は予想印と馬券購入が不可（本番環境用）
+
 # データベースを初期化
 psql -U postgres -d keiba_yosou -f db/schema.sql
 
