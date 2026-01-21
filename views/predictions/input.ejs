@@ -133,7 +133,12 @@ td { padding: 12px; border-bottom: 1px solid #eee; }
 <% }); %>
 </tbody>
 </table>
-<button type="submit" class="btn btn-success" style="margin-top: 15px;">印を保存</button>
+<div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+<button type="submit" class="btn btn-success">印を保存</button>
+<button type="button" class="btn" onclick="autoBet()" style="background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);">
+🎰 おまかせ購入（自動）
+</button>
+</div>
 </form>
 </div>
 <div class="section">
@@ -610,7 +615,12 @@ td { padding: 12px; border-bottom: 1px solid #eee; }
 </form>
 </div>
 <div class="section">
-<h2>🎫 購入済み馬券</h2>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+<h2 style="margin: 0;">🎫 購入済み馬券</h2>
+<% if (bets.length > 0) { %>
+<button onclick="deleteAllMyBets()" class="btn btn-danger" style="padding: 8px 16px; font-size: 14px;">🗑️ 全て削除</button>
+<% } %>
+</div>
 <ul class="bet-list">
 <% if (bets.length === 0) { %>
 <p style="color: #888;">まだ馬券を購入していません</p>
@@ -1173,6 +1183,89 @@ async function deleteBet(betId) {
     } catch (error) { 
         console.error(error);
         alert('エラーが発生しました'); 
+    }
+}
+
+// おまかせ購入
+async function autoBet() {
+    // 現在の印の選択状況を確認
+    const marks = {};
+    document.querySelectorAll('.mark-select').forEach(select => {
+        const umaban = select.name.replace('mark_', '');
+        const mark = select.value;
+        if (mark) {
+            marks[umaban] = mark;
+        }
+    });
+    
+    const markCount = Object.keys(marks).length;
+    
+    if (markCount === 0) {
+        alert('先に予想印を入力してください');
+        return;
+    }
+    
+    // 購入パターンの説明
+    let message = 'おまかせ購入を実行します\n\n';
+    if (markCount === 1) {
+        message += '【購入内容】\n・単勝 10,000円×1点\n合計: 10,000円';
+    } else if (markCount === 2) {
+        message += '【購入内容】\n・単勝 5,000円×1点\n・馬連 5,000円×1点\n合計: 10,000円';
+    } else if (markCount === 3) {
+        message += '【購入内容】\n・単勝 3,000円×1点\n・馬連ボックス 2,000円×3点\n・3連複 1,000円×1点\n合計: 10,000円';
+    } else if (markCount === 4) {
+        message += '【購入内容】\n・単勝 2,000円×1点\n・馬連ボックス（上位3頭）2,000円×3点\n・3連複ボックス 500円×4点\n合計: 10,000円';
+    } else if (markCount === 5) {
+        message += '【購入内容】\n・単勝 2,000円×1点\n・馬連ボックス（上位3頭）1,000円×3点\n・3連複ボックス 500円×10点\n合計: 10,000円';
+    }
+    
+    message += '\n\n※既存の馬券がある場合は実行できません';
+    
+    if (!confirm(message)) return;
+    
+    try {
+        const r = await fetch('/predictions/<%= race.race_id %>/auto-bet', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
+        });
+        const result = await r.json();
+        if (r.ok) {
+            alert(result.message);
+            location.reload();
+        } else {
+            alert(result.error || 'エラーが発生しました');
+        }
+    } catch (error) { 
+        console.error(error);
+        alert('エラーが発生しました'); 
+    }
+}
+
+// 馬券を全て削除
+async function deleteAllMyBets() {
+    const raceId = '<%= race.race_id %>';
+    
+    if (!confirm('このレースの購入馬券をすべて削除しますか？\n\nこの操作は取り消せません。')) {
+        return;
+    }
+    
+    try {
+        const r = await fetch(`/races/${raceId}/delete-my-bets`, {
+            method: 'POST'
+        });
+        
+        const text = await r.text();
+        
+        if (r.ok) {
+            alert(text);
+            location.reload();
+        } else {
+            alert('エラー: ' + text);
+        }
+    } catch (error) { 
+        console.error(error);
+        alert('エラーが発生しました: ' + error.message); 
     }
 }
 

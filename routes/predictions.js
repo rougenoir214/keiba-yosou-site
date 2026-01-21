@@ -272,6 +272,131 @@ router.post('/:race_id/bets', requireAuth, async (req, res) => {
   }
 });
 
+// おまかせ購入（印から自動生成）
+router.post('/:race_id/auto-bet', requireAuth, async (req, res) => {
+  try {
+    // 現在の予想印を取得
+    const predictionsResult = await pool.query(
+      'SELECT * FROM predictions WHERE user_id = $1 AND race_id = $2',
+      [req.session.user.id, req.params.race_id]
+    );
+    
+    const predictions = predictionsResult.rows;
+    
+    if (predictions.length === 0) {
+      return res.status(400).json({ error: '予想印を先に入力してください' });
+    }
+    
+    // 印の重さでソート（◎→○→▲→△→☆）
+    const markOrder = { '◎': 1, '○': 2, '▲': 3, '△': 4, '☆': 5 };
+    predictions.sort((a, b) => markOrder[a.mark] - markOrder[b.mark]);
+    
+    const horses = predictions.map(p => p.umaban);
+    const markCount = horses.length;
+    
+    // 既存の馬券をチェック
+    const existingBets = await pool.query(
+      'SELECT SUM(amount) as total FROM bets WHERE user_id = $1 AND race_id = $2',
+      [req.session.user.id, req.params.race_id]
+    );
+    const currentTotal = parseInt(existingBets.rows[0].total) || 0;
+    
+    if (currentTotal > 0) {
+      return res.status(400).json({ 
+        error: `既に${currentTotal.toLocaleString()}円分の馬券を購入済みです。おまかせ購入を使用する場合は、既存の馬券を削除してから実行してください。` 
+      });
+    }
+    
+    const betsToInsert = [];
+    
+    // 購入パターンを決定
+    if (markCount === 1) {
+      // ①印1個：単勝10,000円
+      betsToInsert.push({ bet_type: 'tansho', horses: horses[0].toString(), amount: 10000 });
+      
+    } else if (markCount === 2) {
+      // ②印2個：重い馬の単勝5,000円 + 2頭の馬連5,000円
+      betsToInsert.push({ bet_type: 'tansho', horses: horses[0].toString(), amount: 5000 });
+      betsToInsert.push({ bet_type: 'umaren', horses: `${horses[0]},${horses[1]}`, amount: 5000 });
+      
+    } else if (markCount === 3) {
+      // ③印3個：単勝3,000円 + 馬連ボックス2,000円×3点 + 3連複1,000円
+      betsToInsert.push({ bet_type: 'tansho', horses: horses[0].toString(), amount: 3000 });
+      
+      // 馬連ボックス（3C2=3点）
+      for (let i = 0; i < 3; i++) {
+        for (let j = i + 1; j < 3; j++) {
+          betsToInsert.push({ bet_type: 'umaren', horses: `${horses[i]},${horses[j]}`, amount: 2000 });
+        }
+      }
+      
+      // 3連複（1点）
+      betsToInsert.push({ bet_type: 'sanrenpuku', horses: `${horses[0]},${horses[1]},${horses[2]}`, amount: 1000 });
+      
+    } else if (markCount === 4) {
+      // ④印4個：単勝2,000円 + 上位3頭の馬連ボックス2,000円×3点 + 4頭の3連複ボックス500円×4点
+      betsToInsert.push({ bet_type: 'tansho', horses: horses[0].toString(), amount: 2000 });
+      
+      // 上位3頭の馬連ボックス（3C2=3点）
+      for (let i = 0; i < 3; i++) {
+        for (let j = i + 1; j < 3; j++) {
+          betsToInsert.push({ bet_type: 'umaren', horses: `${horses[i]},${horses[j]}`, amount: 2000 });
+        }
+      }
+      
+      // 4頭の3連複ボックス（4C3=4点）
+      for (let i = 0; i < 4; i++) {
+        for (let j = i + 1; j < 4; j++) {
+          for (let k = j + 1; k < 4; k++) {
+            betsToInsert.push({ bet_type: 'sanrenpuku', horses: `${horses[i]},${horses[j]},${horses[k]}`, amount: 500 });
+          }
+        }
+      }
+      
+    } else if (markCount === 5) {
+      // ⑤印5個：単勝2,000円 + 上位3頭の馬連ボックス1,000円×3点 + 5頭の3連複ボックス500円×10点
+      betsToInsert.push({ bet_type: 'tansho', horses: horses[0].toString(), amount: 2000 });
+      
+      // 上位3頭の馬連ボックス（3C2=3点）
+      for (let i = 0; i < 3; i++) {
+        for (let j = i + 1; j < 3; j++) {
+          betsToInsert.push({ bet_type: 'umaren', horses: `${horses[i]},${horses[j]}`, amount: 1000 });
+        }
+      }
+      
+      // 5頭の3連複ボックス（5C3=10点）
+      for (let i = 0; i < 5; i++) {
+        for (let j = i + 1; j < 5; j++) {
+          for (let k = j + 1; k < 5; k++) {
+            betsToInsert.push({ bet_type: 'sanrenpuku', horses: `${horses[i]},${horses[j]},${horses[k]}`, amount: 500 });
+          }
+        }
+      }
+    }
+    
+    // 馬券を一括登録
+    for (const bet of betsToInsert) {
+      await pool.query(
+        'INSERT INTO bets (user_id, race_id, bet_type, horses, amount) VALUES ($1, $2, $3, $4, $5)',
+        [req.session.user.id, req.params.race_id, bet.bet_type, bet.horses, bet.amount]
+      );
+    }
+    
+    const totalAmount = betsToInsert.reduce((sum, bet) => sum + bet.amount, 0);
+    
+    res.json({ 
+      success: true, 
+      count: betsToInsert.length, 
+      total: totalAmount,
+      message: `おまかせ購入完了！${betsToInsert.length}点 ${totalAmount.toLocaleString()}円` 
+    });
+    
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'エラーが発生しました' });
+  }
+});
+
 router.delete('/:race_id/bets/:bet_id', requireAuth, async (req, res) => {
   try {
     await pool.query('DELETE FROM bets WHERE id = $1 AND user_id = $2', [req.params.bet_id, req.session.user.id]);
