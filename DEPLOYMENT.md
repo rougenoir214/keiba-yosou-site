@@ -71,7 +71,10 @@ git push -u origin main
    - `NODE_ENV` = `production`
    - `DATABASE_URL` = （先ほどコピーしたInternal Database URL）
    - `SESSION_SECRET` = （ランダムな長い文字列、例: `your-very-long-random-secret-key-123456789`）
+   - `RENDER_URL` = `https://your-service-name.onrender.com` （あなたのWebサービスURL）
    - `PORT` = 削除（Renderが自動設定）
+
+   **重要**: `RENDER_URL`は自動スリープ対策用です。14分ごとに自分自身にリクエストを送り、24時間稼働を維持します。
 
 5. 「Create Web Service」をクリック
 
