@@ -8,6 +8,9 @@ router.get('/', async (req, res) => {
     // 表示モード（monthly or season）
     const mode = req.query.mode || 'season';
     
+    // ランキングタイプ（profit, hit_rate, recovery_rate）
+    const rankingType = req.query.type || 'profit';
+    
     // シーズン一覧を取得
     const seasonsResult = await pool.query('SELECT * FROM seasons ORDER BY start_date DESC');
     
@@ -46,6 +49,14 @@ router.get('/', async (req, res) => {
       }
     }
     
+    // ランキングタイプに応じてソート順を変更
+    let orderBy = 'profit DESC'; // デフォルトは収支降順
+    if (rankingType === 'hit_rate') {
+      orderBy = 'hit_rate DESC, profit DESC';
+    } else if (rankingType === 'recovery_rate') {
+      orderBy = 'recovery_rate DESC, profit DESC';
+    }
+    
     // ユーザー別の統計を計算
     const rankingQuery = `
       SELECT 
@@ -74,13 +85,14 @@ router.get('/', async (req, res) => {
       WHERE b.id IS NOT NULL
       ${dateFilter}
       GROUP BY u.id, u.display_name
-      ORDER BY profit DESC
+      ORDER BY ${orderBy}
     `;
     
     const rankingResult = await pool.query(rankingQuery, params);
     
     res.render('ranking/index', {
       mode: mode,
+      rankingType: rankingType,
       seasons: seasonsResult.rows,
       selectedSeason: selectedSeason,
       currentMonth: currentMonth,
