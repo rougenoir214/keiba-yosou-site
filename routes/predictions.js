@@ -195,10 +195,12 @@ router.post('/:race_id/marks', requireAuth, async (req, res) => {
     console.log('現在時刻:', now);
     console.log('発走時刻:', raceDateTime);
     console.log('判定:', now < raceDateTime ? '購入可能' : '購入不可');
+    console.log('テストモード:', process.env.TEST_MODE === 'true' ? 'ON（時刻制限なし）' : 'OFF');
     console.log('========================');
     
-    // 現在時刻が発走時刻以降なら拒否
-    if (now >= raceDateTime) {
+    // テストモードでない場合のみ時刻チェック
+    const isTestMode = process.env.TEST_MODE === 'true';
+    if (!isTestMode && now >= raceDateTime) {
       return res.status(400).json({ error: 'レース開始時刻を過ぎているため、予想を入力できません' });
     }
     
@@ -240,10 +242,12 @@ router.post('/:race_id/bets', requireAuth, async (req, res) => {
     console.log('現在時刻:', now);
     console.log('発走時刻:', raceDateTime);
     console.log('判定:', now < raceDateTime ? '購入可能' : '購入不可');
+    console.log('テストモード:', process.env.TEST_MODE === 'true' ? 'ON（時刻制限なし）' : 'OFF');
     console.log('========================');
     
-    // 現在時刻が発走時刻以降なら拒否
-    if (now >= raceDateTime) {
+    // テストモードでない場合のみ時刻チェック
+    const isTestMode = process.env.TEST_MODE === 'true';
+    if (!isTestMode && now >= raceDateTime) {
       return res.status(400).json({ error: 'レース開始時刻を過ぎているため、馬券を購入できません' });
     }
     
