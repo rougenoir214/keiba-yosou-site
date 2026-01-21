@@ -35,18 +35,53 @@ th { background: #667eea; color: white; padding: 12px; text-align: left; }
 td { padding: 12px; border-bottom: 1px solid #eee; }
 tr:hover { background: #f5f5f5; }
 
-/* 1位、2位、3位の色を改善 */
-.rank-1 { background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%) !important; font-weight: bold; }
-.rank-2 { background: linear-gradient(135deg, #E8E8E8 0%, #C0C0C0 100%) !important; font-weight: bold; }
-.rank-3 { background: linear-gradient(135deg, #CD7F32 0%, #8B4513 100%) !important; font-weight: bold; }
+/* 1位、2位、3位の色を改善 - シンプル＆モダン */
+.rank-1 { 
+    background: rgba(124, 58, 237, 0.08) !important; 
+    border-left: 4px solid #7C3AED !important;
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.15);
+    font-weight: bold;
+}
+.rank-2 { 
+    background: rgba(59, 130, 246, 0.08) !important; 
+    border-left: 4px solid #3B82F6 !important;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+    font-weight: bold;
+}
+.rank-3 { 
+    background: rgba(16, 185, 129, 0.08) !important; 
+    border-left: 4px solid #10B981 !important;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
+    font-weight: bold;
+}
 
 .profit-positive { color: #4caf50; font-weight: bold; }
 .profit-negative { color: #f44336; font-weight: bold; }
 
-.rank-badge { display: inline-block; padding: 4px 8px; border-radius: 5px; font-size: 14px; }
-.badge-1 { background: #FFD700; color: #333; }
-.badge-2 { background: #C0C0C0; color: #333; }
-.badge-3 { background: #CD7F32; color: white; }
+.rank-badge { 
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px; 
+    border-radius: 8px; 
+    font-size: 14px;
+    font-weight: 600;
+}
+.badge-1 { 
+    background: linear-gradient(135deg, #7C3AED 0%, #A78BFA 100%);
+    color: white;
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
+}
+.badge-2 { 
+    background: linear-gradient(135deg, #3B82F6 0%, #60A5FA 100%);
+    color: white;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+.badge-3 { 
+    background: linear-gradient(135deg, #10B981 0%, #34D399 100%);
+    color: white;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
+}
 
 /* スマホ対応 */
 @media (max-width: 768px) {
@@ -160,7 +195,8 @@ if (rankingType === 'profit') {
 <tr class="<%= index < 3 ? `rank-${index + 1}` : '' %>">
 <td>
 <% if (index < 3) { %>
-<span class="rank-badge badge-<%= index + 1 %>"><%= index + 1 %>位</span>
+<% const medals = ['🥇', '🥈', '🥉']; %>
+<span class="rank-badge badge-<%= index + 1 %>"><%= medals[index] %> <%= index + 1 %>位</span>
 <% } else { %>
 <strong><%= index + 1 %></strong>
 <% } %>
