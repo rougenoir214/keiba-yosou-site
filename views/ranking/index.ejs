@@ -10,14 +10,20 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 .container { max-width: 1200px; margin: 0 auto; }
 .header { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
 .header h1 { color: #333; margin-bottom: 10px; }
-.back-link { display: inline-block; margin-top: 10px; color: #667eea; text-decoration: none; }
+.back-link { display: inline-block; margin-top: 10px; color: #667eea; text-decoration: none; margin-right: 15px; }
 .back-link:hover { text-decoration: underline; }
 
 /* タブ */
-.tabs { display: flex; gap: 10px; margin-top: 15px; border-bottom: 2px solid #e0e0e0; }
-.tab { padding: 10px 20px; cursor: pointer; border: none; background: none; font-size: 16px; color: #888; transition: all 0.3s; }
+.tabs { display: flex; gap: 10px; margin-top: 15px; border-bottom: 2px solid #e0e0e0; flex-wrap: wrap; }
+.tab { padding: 10px 20px; cursor: pointer; border: none; background: none; font-size: 16px; color: #888; transition: all 0.3s; white-space: nowrap; }
 .tab.active { color: #667eea; border-bottom: 3px solid #667eea; font-weight: bold; }
 .tab:hover { color: #667eea; }
+
+/* ランキングタイプタブ */
+.ranking-type-tabs { display: flex; gap: 8px; margin-top: 15px; border-bottom: 2px solid #e0e0e0; flex-wrap: wrap; }
+.ranking-type-tab { padding: 8px 16px; cursor: pointer; border: none; background: none; font-size: 14px; color: #888; transition: all 0.3s; white-space: nowrap; }
+.ranking-type-tab.active { color: #764ba2; border-bottom: 3px solid #764ba2; font-weight: bold; }
+.ranking-type-tab:hover { color: #764ba2; }
 
 .season-selector { margin-top: 15px; }
 .season-selector select { padding: 8px; border: 2px solid #e0e0e0; border-radius: 5px; font-size: 14px; }
@@ -28,11 +34,19 @@ table { width: 100%; border-collapse: collapse; }
 th { background: #667eea; color: white; padding: 12px; text-align: left; }
 td { padding: 12px; border-bottom: 1px solid #eee; }
 tr:hover { background: #f5f5f5; }
-.rank-1 { background: #ffd700 !important; font-weight: bold; }
-.rank-2 { background: #c0c0c0 !important; }
-.rank-3 { background: #cd7f32 !important; }
+
+/* 1位、2位、3位の色を改善 */
+.rank-1 { background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%) !important; font-weight: bold; }
+.rank-2 { background: linear-gradient(135deg, #E8E8E8 0%, #C0C0C0 100%) !important; font-weight: bold; }
+.rank-3 { background: linear-gradient(135deg, #CD7F32 0%, #8B4513 100%) !important; font-weight: bold; }
+
 .profit-positive { color: #4caf50; font-weight: bold; }
 .profit-negative { color: #f44336; font-weight: bold; }
+
+.rank-badge { display: inline-block; padding: 4px 8px; border-radius: 5px; font-size: 14px; }
+.badge-1 { background: #FFD700; color: #333; }
+.badge-2 { background: #C0C0C0; color: #333; }
+.badge-3 { background: #CD7F32; color: white; }
 
 /* スマホ対応 */
 @media (max-width: 768px) {
@@ -40,8 +54,9 @@ tr:hover { background: #f5f5f5; }
     .header, .section { padding: 15px; }
     .header h1 { font-size: 1.3rem; }
     .back-link { display: block; margin: 5px 0; }
-    .tabs { flex-wrap: wrap; }
-    .tab { padding: 8px 15px; font-size: 14px; }
+    .tabs, .ranking-type-tabs { flex-wrap: wrap; }
+    .tab { padding: 8px 12px; font-size: 14px; }
+    .ranking-type-tab { padding: 6px 10px; font-size: 13px; }
     .season-selector { margin-top: 10px; }
     .season-selector select { width: 100%; font-size: 16px; }
     table { font-size: 0.85rem; display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -54,13 +69,29 @@ tr:hover { background: #f5f5f5; }
 <div class="header">
 <h1>🏆 ランキング</h1>
 
-<!-- タブ切り替え -->
+<!-- 期間タブ切り替え -->
 <div class="tabs">
-    <button class="tab <%= mode === 'monthly' ? 'active' : '' %>" onclick="location.href='/ranking?mode=monthly'">
+    <button class="tab <%= mode === 'monthly' ? 'active' : '' %>" onclick="location.href='/ranking?mode=monthly&type=<%= rankingType %>'">
         📅 月間ランキング
     </button>
-    <button class="tab <%= mode === 'season' ? 'active' : '' %>" onclick="location.href='/ranking?mode=season'">
+    <button class="tab <%= mode === 'season' ? 'active' : '' %>" onclick="location.href='/ranking?mode=season&type=<%= rankingType %>'">
         🏅 シーズンランキング
+    </button>
+</div>
+
+<!-- ランキングタイプタブ -->
+<div class="ranking-type-tabs">
+    <% 
+    const currentParams = mode === 'season' && selectedSeason ? `mode=${mode}&season_id=${selectedSeason.id}` : `mode=${mode}`;
+    %>
+    <button class="ranking-type-tab <%= rankingType === 'profit' ? 'active' : '' %>" onclick="location.href='/ranking?<%= currentParams %>&type=profit'">
+        💰 収支ランキング
+    </button>
+    <button class="ranking-type-tab <%= rankingType === 'hit_rate' ? 'active' : '' %>" onclick="location.href='/ranking?<%= currentParams %>&type=hit_rate'">
+        🎯 的中率ランキング
+    </button>
+    <button class="ranking-type-tab <%= rankingType === 'recovery_rate' ? 'active' : '' %>" onclick="location.href='/ranking?<%= currentParams %>&type=recovery_rate'">
+        📈 回収率ランキング
     </button>
 </div>
 
@@ -68,7 +99,7 @@ tr:hover { background: #f5f5f5; }
 <% if (mode === 'season') { %>
 <div class="season-selector">
 <label for="season">シーズン選択：</label>
-<select id="season" onchange="location.href='/ranking?mode=season&season_id='+this.value">
+<select id="season" onchange="location.href='/ranking?mode=season&type=<%= rankingType %>&season_id='+this.value">
 <% seasons.forEach(season => { %>
 <option value="<%= season.id %>" <%= selectedSeason && selectedSeason.id === season.id ? 'selected' : '' %>>
 <%= season.name %>
@@ -89,7 +120,17 @@ tr:hover { background: #f5f5f5; }
 </div>
 
 <div class="section">
-<h2>🎖️ ユーザーランキング</h2>
+<%
+let rankingTitle = '';
+if (rankingType === 'profit') {
+    rankingTitle = '💰 収支ランキング';
+} else if (rankingType === 'hit_rate') {
+    rankingTitle = '🎯 的中率ランキング';
+} else if (rankingType === 'recovery_rate') {
+    rankingTitle = '📈 回収率ランキング';
+}
+%>
+<h2><%= rankingTitle %></h2>
 <% if (rankings.length === 0) { %>
 <p style="color: #888;">まだデータがありません</p>
 <% } else { %>
@@ -99,26 +140,52 @@ tr:hover { background: #f5f5f5; }
 <th>順位</th>
 <th>ユーザー</th>
 <th>レース数</th>
+<% if (rankingType === 'profit') { %>
 <th>購入額</th>
 <th>払戻額</th>
 <th>収支</th>
+<% } else if (rankingType === 'hit_rate') { %>
 <th>的中率</th>
+<th>的中数/参加数</th>
+<th>収支</th>
+<% } else if (rankingType === 'recovery_rate') { %>
 <th>回収率</th>
+<th>払戻額</th>
+<th>収支</th>
+<% } %>
 </tr>
 </thead>
 <tbody>
 <% rankings.forEach((rank, index) => { %>
 <tr class="<%= index < 3 ? `rank-${index + 1}` : '' %>">
-<td><strong><%= index + 1 %></strong></td>
+<td>
+<% if (index < 3) { %>
+<span class="rank-badge badge-<%= index + 1 %>"><%= index + 1 %>位</span>
+<% } else { %>
+<strong><%= index + 1 %></strong>
+<% } %>
+</td>
 <td><%= rank.display_name %></td>
 <td><%= rank.race_count %></td>
+<% if (rankingType === 'profit') { %>
 <td><%= parseInt(rank.total_bet).toLocaleString() %>円</td>
 <td><%= parseInt(rank.total_payout).toLocaleString() %>円</td>
 <td class="<%= parseInt(rank.profit) >= 0 ? 'profit-positive' : 'profit-negative' %>">
 <%= parseInt(rank.profit) >= 0 ? '+' : '' %><%= parseInt(rank.profit).toLocaleString() %>円
 </td>
-<td><%= rank.hit_rate %>%（<%= rank.hit_race_count %>/<%= rank.race_count %>）</td>
-<td><%= rank.recovery_rate %>%</td>
+<% } else if (rankingType === 'hit_rate') { %>
+<td><strong style="font-size: 1.1em; color: #667eea;"><%= rank.hit_rate %>%</strong></td>
+<td><%= rank.hit_race_count %>/<%= rank.race_count %></td>
+<td class="<%= parseInt(rank.profit) >= 0 ? 'profit-positive' : 'profit-negative' %>">
+<%= parseInt(rank.profit) >= 0 ? '+' : '' %><%= parseInt(rank.profit).toLocaleString() %>円
+</td>
+<% } else if (rankingType === 'recovery_rate') { %>
+<td><strong style="font-size: 1.1em; color: #667eea;"><%= rank.recovery_rate %>%</strong></td>
+<td><%= parseInt(rank.total_payout).toLocaleString() %>円</td>
+<td class="<%= parseInt(rank.profit) >= 0 ? 'profit-positive' : 'profit-negative' %>">
+<%= parseInt(rank.profit) >= 0 ? '+' : '' %><%= parseInt(rank.profit).toLocaleString() %>円
+</td>
+<% } %>
 </tr>
 <% }); %>
 </tbody>
