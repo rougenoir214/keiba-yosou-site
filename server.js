@@ -57,7 +57,55 @@ app.get('/', (req, res) => {
   res.render('index', { user: req.session.user });
 });
 
+// ヘルスチェックエンドポイント（keep-alive用）
+app.get('/health', (req, res) => {
+  res.status(200).json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
+  });
+});
+
 // サーバー起動
 app.listen(PORT, () => {
   console.log(`サーバーが起動しました: http://localhost:${PORT}`);
+  
+  // Render.com スリープ対策（本番環境のみ）
+  if (process.env.NODE_ENV === 'production') {
+    const RENDER_URL = process.env.RENDER_URL || 'https://keiba-yosou-site.onrender.com';
+    const INTERVAL = 14 * 60 * 1000; // 14分ごと
+    
+    console.log('Keep-alive機能を開始します（14分間隔）');
+    
+    setInterval(async () => {
+      try {
+        const https = require('https');
+        const url = `${RENDER_URL}/health`;
+        
+        https.get(url, (res) => {
+          console.log(`Keep-alive ping送信: ${url} - Status: ${res.statusCode}`);
+        }).on('error', (err) => {
+          console.error('Keep-alive ping失敗:', err.message);
+        });
+      } catch (error) {
+        console.error('Keep-alive エラー:', error.message);
+      }
+    }, INTERVAL);
+    
+    // 初回は30秒後に実行
+    setTimeout(() => {
+      try {
+        const https = require('https');
+        const url = `${RENDER_URL}/health`;
+        
+        https.get(url, (res) => {
+          console.log(`初回 Keep-alive ping送信: ${url} - Status: ${res.statusCode}`);
+        }).on('error', (err) => {
+          console.error('初回 Keep-alive ping失敗:', err.message);
+        });
+      } catch (error) {
+        console.error('初回 Keep-alive エラー:', error.message);
+      }
+    }, 30000);
+  }
 });
