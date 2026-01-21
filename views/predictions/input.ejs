@@ -1049,7 +1049,54 @@ document.getElementById('amount').addEventListener('input', function() {
 document.getElementById('tanfuku-input').style.display = 'block';
 updateBuyMethodOptions();
 
+// 印の選択制御（同じ印は1頭のみ、最大5頭まで）
+document.querySelectorAll('.mark-select').forEach(select => {
+    select.addEventListener('change', function() {
+        const selectedMark = this.value;
+        const currentUmaban = this.name.replace('mark_', '');
+        
+        if (selectedMark) {
+            // 同じ印が他の馬に既に選択されていないかチェック
+            document.querySelectorAll('.mark-select').forEach(otherSelect => {
+                const otherUmaban = otherSelect.name.replace('mark_', '');
+                if (otherUmaban !== currentUmaban && otherSelect.value === selectedMark) {
+                    // 他の馬から同じ印を解除
+                    otherSelect.value = '';
+                }
+            });
+        }
+        
+        // 選択済み印数をカウント（最大5個チェック）
+        const selectedCount = Array.from(document.querySelectorAll('.mark-select')).filter(s => s.value).length;
+        
+        // 未選択の要素は5個まで選択可能
+        document.querySelectorAll('.mark-select').forEach(s => {
+            if (!s.value && selectedCount >= 5) {
+                // 5個選択済みの場合、未選択の要素を無効化
+                Array.from(s.options).forEach(opt => {
+                    if (opt.value) opt.disabled = true;
+                });
+            } else if (!s.value) {
+                // 5個未満の場合、すべて有効化
+                Array.from(s.options).forEach(opt => opt.disabled = false);
+            }
+        });
+    });
+});
 
+// ページ読み込み時に初期チェック
+window.addEventListener('DOMContentLoaded', () => {
+    const selectedCount = Array.from(document.querySelectorAll('.mark-select')).filter(s => s.value).length;
+    if (selectedCount >= 5) {
+        document.querySelectorAll('.mark-select').forEach(s => {
+            if (!s.value) {
+                Array.from(s.options).forEach(opt => {
+                    if (opt.value) opt.disabled = true;
+                });
+            }
+        });
+    }
+});
 
 // 印の保存
 document.getElementById('marks-form').addEventListener('submit', async (e) => {
