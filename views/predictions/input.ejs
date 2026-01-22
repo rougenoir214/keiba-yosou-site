@@ -615,9 +615,17 @@ td { padding: 12px; border-bottom: 1px solid #eee; }
 </form>
 </div>
 <div class="section">
+<%
+// 発走時刻をチェック
+const now = new Date();
+const raceDateTime = new Date(race.race_date);
+const [hours, minutes] = race.race_time.split(':');
+raceDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+const canDeleteBets = now < raceDateTime;
+%>
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
 <h2 style="margin: 0;">🎫 購入済み馬券</h2>
-<% if (bets.length > 0) { %>
+<% if (bets.length > 0 && canDeleteBets) { %>
 <button onclick="deleteAllMyBets()" class="btn btn-danger" style="padding: 8px 16px; font-size: 14px;">🗑️ 全て削除</button>
 <% } %>
 </div>
@@ -629,7 +637,9 @@ td { padding: 12px; border-bottom: 1px solid #eee; }
 <% bets.forEach(bet => { totalAmount += bet.amount; %>
 <li class="bet-item">
 <div class="bet-info"><strong><%= betTypeNames[bet.bet_type] %></strong>: <%= bet.horses.replace(/,/g, '-') %> - <%= bet.amount.toLocaleString() %>円</div>
+<% if (canDeleteBets) { %>
 <button class="btn btn-danger" onclick="deleteBet(<%= bet.id %>)">削除</button>
+<% } %>
 </li>
 <% }); %>
 <div class="total-amount">合計: <span id="total-amount"><%= totalAmount.toLocaleString() %></span>円</div>
