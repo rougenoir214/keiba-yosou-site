@@ -133,6 +133,19 @@ td { padding: 12px; border-bottom: 1px solid #eee; }
 <% }); %>
 </tbody>
 </table>
+<div style="margin-top: 20px;">
+<label for="prediction_comment" style="display: block; margin-bottom: 8px; font-weight: 600; color: #333;">💬 予想コメント（任意・500文字まで）</label>
+<textarea 
+  id="prediction_comment" 
+  name="comment" 
+  rows="4" 
+  maxlength="500"
+  style="width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px; resize: vertical;"
+  placeholder="この馬を本命にした理由、レースの展開予想など..."><%= predictions.length > 0 && predictions[0].comment ? predictions[0].comment : '' %></textarea>
+<div style="text-align: right; font-size: 12px; color: #888; margin-top: 4px;">
+  <span id="comment_count">0</span> / 500文字
+</div>
+</div>
 <div style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
 <button type="submit" class="btn btn-success">印を保存</button>
 <button type="button" class="btn" onclick="autoBet()" style="background: linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%); box-shadow: 0 4px 15px rgba(255, 107, 107, 0.4);">
@@ -621,7 +634,8 @@ const now = new Date();
 const raceDateTime = new Date(race.race_date);
 const [hours, minutes] = race.race_time.split(':');
 raceDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-const canDeleteBets = now < raceDateTime;
+const isTestMode = process.env.TEST_MODE === 'true';
+const canDeleteBets = isTestMode || (now < raceDateTime);
 %>
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
 <h2 style="margin: 0;">🎫 購入済み馬券</h2>
@@ -1116,6 +1130,19 @@ window.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    
+    // コメント文字数カウント
+    const commentTextarea = document.getElementById('prediction_comment');
+    const commentCount = document.getElementById('comment_count');
+    if (commentTextarea && commentCount) {
+        // 初期表示
+        commentCount.textContent = commentTextarea.value.length;
+        
+        // 入力時の更新
+        commentTextarea.addEventListener('input', function() {
+            commentCount.textContent = this.value.length;
+        });
+    }
 });
 
 // 印の保存
@@ -1128,13 +1155,15 @@ document.getElementById('marks-form').addEventListener('submit', async (e) => {
             marks[key.replace('mark_', '')] = value;
         }
     }
+    const comment = document.getElementById('prediction_comment').value;
     try {
         const r = await fetch('/predictions/<%= race.race_id %>/marks', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ marks })
+            body: JSON.stringify({ marks, comment })
         });
         alert(r.ok ? '印を保存しました' : 'エラーが発生しました');
+        if (r.ok) location.reload();
     } catch (error) { alert('エラーが発生しました'); }
 });
 
