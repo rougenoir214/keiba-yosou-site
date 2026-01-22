@@ -399,6 +399,25 @@ router.post('/:race_id/auto-bet', requireAuth, async (req, res) => {
 
 router.delete('/:race_id/bets/:bet_id', requireAuth, async (req, res) => {
   try {
+    // レース情報を取得して時刻チェック
+    const raceInfo = await pool.query('SELECT race_date, race_time FROM races WHERE race_id = $1', [req.params.race_id]);
+    
+    if (raceInfo.rows.length === 0) {
+      return res.status(404).json({ error: 'レースが見つかりません' });
+    }
+    
+    const race = raceInfo.rows[0];
+    const now = new Date();
+    const raceDateTime = new Date(race.race_date);
+    const [hours, minutes] = race.race_time.split(':');
+    raceDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    
+    // テストモードでない場合のみ時刻チェック
+    const isTestMode = process.env.TEST_MODE === 'true';
+    if (!isTestMode && now >= raceDateTime) {
+      return res.status(400).json({ error: 'レース開始時刻を過ぎているため、馬券を削除できません' });
+    }
+    
     await pool.query('DELETE FROM bets WHERE id = $1 AND user_id = $2', [req.params.bet_id, req.session.user.id]);
     res.json({ success: true });
   } catch (error) {

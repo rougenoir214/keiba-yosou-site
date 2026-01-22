@@ -14,8 +14,35 @@ router.get('/', async (req, res) => {
       ORDER BY r.race_date DESC, r.race_time DESC
     `);
     
+    // 各レースの状態を判定
+    const now = new Date();
+    const racesWithStatus = result.rows.map(race => {
+      const raceDateTime = new Date(race.race_date);
+      const [hours, minutes] = race.race_time.split(':');
+      raceDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      
+      const diffMinutes = (raceDateTime - now) / (1000 * 60);
+      
+      let status, statusClass, statusIcon;
+      if (diffMinutes > 30) {
+        status = '予想可能';
+        statusClass = 'status-available';
+        statusIcon = '🟢';
+      } else if (diffMinutes > 0) {
+        status = 'まもなく発走';
+        statusClass = 'status-soon';
+        statusIcon = '⏰';
+      } else {
+        status = '終了';
+        statusClass = 'status-finished';
+        statusIcon = '⏹️';
+      }
+      
+      return { ...race, status, statusClass, statusIcon };
+    });
+    
     res.render('races/index', { 
-      races: result.rows,
+      races: racesWithStatus,
       user: req.session.user || null
     });
   } catch (error) {
@@ -65,8 +92,35 @@ router.get('/archive', async (req, res) => {
     
     const result = await pool.query(query, params);
     
+    // 各レースの状態を判定
+    const now = new Date();
+    const racesWithStatus = result.rows.map(race => {
+      const raceDateTime = new Date(race.race_date);
+      const [hours, minutes] = race.race_time.split(':');
+      raceDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      
+      const diffMinutes = (raceDateTime - now) / (1000 * 60);
+      
+      let status, statusClass, statusIcon;
+      if (diffMinutes > 30) {
+        status = '予想可能';
+        statusClass = 'status-available';
+        statusIcon = '🟢';
+      } else if (diffMinutes > 0) {
+        status = 'まもなく発走';
+        statusClass = 'status-soon';
+        statusIcon = '⏰';
+      } else {
+        status = '終了';
+        statusClass = 'status-finished';
+        statusIcon = '⏹️';
+      }
+      
+      return { ...race, status, statusClass, statusIcon };
+    });
+    
     res.render('races/archive', {
-      races: result.rows,
+      races: racesWithStatus,
       seasons: seasonsResult.rows,
       selectedSeason: selectedSeason,
       customPeriod: customPeriod,
@@ -261,7 +315,32 @@ router.post('/:race_id/delete-my-bets', async (req, res) => {
   try {
     console.log(`馬券削除開始: race_id=${race_id}, user_id=${userId}`);
     
-    // まず、このユーザーの馬券数を確認
+    // レース情報を取得して時刻チェック
+    const raceInfo = await pool.query('SELECT race_date, race_time FROM races WHERE race_id = $1', [race_id]);
+    
+    if (raceInfo.rows.length === 0) {
+      return res.status(404).send('レースが見つかりません');
+    }
+    
+    const race = raceInfo.rows[0];
+    const now = new Date();
+    const raceDateTime = new Date(race.race_date);
+    const [hours, minutes] = race.race_time.split(':');
+    raceDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    
+    console.log('=== 馬券削除の時刻チェック ===');
+    console.log('現在時刻:', now);
+    console.log('発走時刻:', raceDateTime);
+    console.log('テストモード:', process.env.TEST_MODE === 'true' ? 'ON（時刻制限なし）' : 'OFF');
+    console.log('========================');
+    
+    // テストモードでない場合のみ時刻チェック
+    const isTestMode = process.env.TEST_MODE === 'true';
+    if (!isTestMode && now >= raceDateTime) {
+      return res.status(400).send('レース開始時刻を過ぎているため、馬券を削除できません');
+    }
+    
+    // このユーザーの馬券数を確認
     const countResult = await pool.query(
       'SELECT COUNT(*) as count FROM bets WHERE race_id = $1 AND user_id = $2',
       [race_id, userId]
