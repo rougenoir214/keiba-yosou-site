@@ -149,15 +149,34 @@
             }
             th, td {
                 padding: 6px 3px !important;
-                white-space: normal !important; /* 改行を許可 */
+                white-space: normal !important;
                 word-wrap: break-word;
             }
-            /* 馬名と騎手のセルは幅を広めに */
-            td:nth-child(3), /* 馬名 */
-            td:nth-child(4)  /* 騎手 */ {
-                min-width: 60px;
+            
+            /* 厩舎列を非表示 */
+            th:nth-child(7), /* 厩舎のヘッダー */
+            td:nth-child(7)  /* 厩舎のセル */ {
+                display: none;
             }
+            
+            /* 馬名セルを2行表示に */
+            td:nth-child(3) {
+                line-height: 1.4;
             }
+            
+            /* 馬名を大きく */
+            td:nth-child(3) strong {
+                display: block;
+                font-size: 0.9rem;
+                margin-bottom: 2px;
+            }
+            
+            /* 年齢性別・騎手・斤量を小さく表示 */
+            .horse-details {
+                font-size: 0.65rem;
+                color: #666;
+            }
+            
             .waku {
                 width: 20px !important;
                 height: 20px !important;
@@ -220,7 +239,10 @@
                                 </div>
                             </td>
                             <td><strong><%= horse.umaban %></strong></td>
-                            <td><strong><%= horse.horse_name %></strong></td>
+                            <td>
+                                <strong><%= horse.horse_name %></strong>
+                                <div class="horse-details"><%= horse.age_sex %> <%= horse.jockey %> <%= horse.weight_load %>kg</div>
+                            </td>
                             <td><%= horse.age_sex %></td>
                             <td><%= horse.weight_load %>kg</td>
                             <td><%= horse.jockey %></td>

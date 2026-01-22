@@ -100,6 +100,36 @@
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
+        
+        /* レース状態バッジ */
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-right: 10px;
+        }
+        .status-available {
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            color: white;
+        }
+        .status-soon {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+            color: white;
+        }
+        .status-finished {
+            background: linear-gradient(135deg, #9e9e9e 0%, #757575 100%);
+            color: white;
+        }
+        
+        /* レースカード全体 - 全て同じスタイル */
+        .race-card.status-available,
+        .race-card.status-soon,
+        .race-card.status-finished {
+            /* ステータスバッジだけで区別 */
+        }
+        
         .race-card h3 {
             color: #333;
             margin-bottom: 10px;
@@ -207,7 +237,10 @@
             </div>
             
             <% races.forEach(race => { %>
-                <div class="race-card">
+                <div class="race-card <%= race.statusClass %>">
+                    <div style="margin-bottom: 10px;">
+                        <span class="status-badge <%= race.statusClass %>"><%= race.statusIcon %> <%= race.status %></span>
+                    </div>
                     <h3><%= race.race_name %></h3>
                     <div class="race-info">
                         <span>📅 <%= new Date(race.race_date).toLocaleDateString('ja-JP') %></span>
