@@ -176,9 +176,9 @@ if (rankingType === 'profit') {
 <th>ユーザー</th>
 <th>レース数</th>
 <% if (rankingType === 'profit') { %>
+<th>収支</th>
 <th>購入額</th>
 <th>払戻額</th>
-<th>収支</th>
 <% } else if (rankingType === 'hit_rate') { %>
 <th>的中率</th>
 <th>的中数/参加数</th>
@@ -204,11 +204,11 @@ if (rankingType === 'profit') {
 <td><%= rank.display_name %></td>
 <td><%= rank.race_count %></td>
 <% if (rankingType === 'profit') { %>
-<td><%= parseInt(rank.total_bet).toLocaleString() %>円</td>
-<td><%= parseInt(rank.total_payout).toLocaleString() %>円</td>
 <td class="<%= parseInt(rank.profit) >= 0 ? 'profit-positive' : 'profit-negative' %>">
 <%= parseInt(rank.profit) >= 0 ? '+' : '' %><%= parseInt(rank.profit).toLocaleString() %>円
 </td>
+<td><%= parseInt(rank.total_bet).toLocaleString() %>円</td>
+<td><%= parseInt(rank.total_payout).toLocaleString() %>円</td>
 <% } else if (rankingType === 'hit_rate') { %>
 <td><strong style="font-size: 1.1em; color: #667eea;"><%= rank.hit_rate %>%</strong></td>
 <td><%= rank.hit_race_count %>/<%= rank.race_count %></td>
