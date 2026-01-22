@@ -172,7 +172,7 @@ router.get('/:race_id', requireAuth, async (req, res) => {
 });
 
 router.post('/:race_id/marks', requireAuth, async (req, res) => {
-  const { marks } = req.body;
+  const { marks, comment } = req.body;
   try {
     // レース情報を取得
     const raceInfo = await pool.query('SELECT race_date, race_time FROM races WHERE race_id = $1', [req.params.race_id]);
@@ -205,9 +205,14 @@ router.post('/:race_id/marks', requireAuth, async (req, res) => {
     }
     
     await pool.query('DELETE FROM predictions WHERE user_id = $1 AND race_id = $2', [req.session.user.id, req.params.race_id]);
+    
+    // コメントの文字数チェック（500文字まで）
+    const commentText = comment ? comment.substring(0, 500) : null;
+    
     for (const [umaban, mark] of Object.entries(marks)) {
       if (mark) {
-        await pool.query('INSERT INTO predictions (user_id, race_id, umaban, mark) VALUES ($1, $2, $3, $4)', [req.session.user.id, req.params.race_id, parseInt(umaban), mark]);
+        // 各予想にコメントを保存（全ての行に同じコメント）
+        await pool.query('INSERT INTO predictions (user_id, race_id, umaban, mark, comment) VALUES ($1, $2, $3, $4, $5)', [req.session.user.id, req.params.race_id, parseInt(umaban), mark, commentText]);
       }
     }
     res.json({ success: true });
