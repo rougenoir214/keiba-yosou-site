@@ -4,16 +4,17 @@ const pool = require('../db/connection');
 
 // ボックス・フォーメーション買いの組み合わせ生成
 function generateCombinationsForPayout(horses, betType, betFormat) {
-  const horseArray = horses.split(',').map(h => h.trim());
   const combinations = [];
   
   if (betFormat === 'box') {
     // ボックス買い: すべての組み合わせを生成
+    const horseArray = horses.split(',').map(h => h.trim());
+    
     if (betType === 'umaren' || betType === 'wide') {
-      // 2頭の組み合わせ
+      // 2頭の組み合わせ（順不同、ソート済み）
       for (let i = 0; i < horseArray.length; i++) {
         for (let j = i + 1; j < horseArray.length; j++) {
-          combinations.push([horseArray[i], horseArray[j]].sort((a, b) => parseInt(a) - parseInt(b)).join('-'));
+          combinations.push([horseArray[i], horseArray[j]].sort((a, b) => parseInt(a) - parseInt(b)).join(','));
         }
       }
     } else if (betType === 'umatan') {
@@ -21,16 +22,16 @@ function generateCombinationsForPayout(horses, betType, betFormat) {
       for (let i = 0; i < horseArray.length; i++) {
         for (let j = 0; j < horseArray.length; j++) {
           if (i !== j) {
-            combinations.push(`${horseArray[i]}-${horseArray[j]}`);
+            combinations.push(`${horseArray[i]},${horseArray[j]}`);
           }
         }
       }
     } else if (betType === 'sanrenpuku') {
-      // 3連複: 3頭の組み合わせ
+      // 3連複: 3頭の組み合わせ（順不同、ソート済み）
       for (let i = 0; i < horseArray.length; i++) {
         for (let j = i + 1; j < horseArray.length; j++) {
           for (let k = j + 1; k < horseArray.length; k++) {
-            combinations.push([horseArray[i], horseArray[j], horseArray[k]].sort((a, b) => parseInt(a) - parseInt(b)).join('-'));
+            combinations.push([horseArray[i], horseArray[j], horseArray[k]].sort((a, b) => parseInt(a) - parseInt(b)).join(','));
           }
         }
       }
@@ -41,7 +42,7 @@ function generateCombinationsForPayout(horses, betType, betFormat) {
           if (i !== j) {
             for (let k = 0; k < horseArray.length; k++) {
               if (k !== i && k !== j) {
-                combinations.push(`${horseArray[i]}-${horseArray[j]}-${horseArray[k]}`);
+                combinations.push(`${horseArray[i]},${horseArray[j]},${horseArray[k]}`);
               }
             }
           }
@@ -49,7 +50,7 @@ function generateCombinationsForPayout(horses, betType, betFormat) {
       }
     }
   } else if (betFormat === 'formation') {
-    // フォーメーション買い
+    // フォーメーション買い: '>'で区切られた形式
     const groups = horses.split('>').map(g => g.split(',').map(h => h.trim()));
     
     if (betType === 'sanrentan' && groups.length === 3) {
@@ -59,7 +60,7 @@ function generateCombinationsForPayout(horses, betType, betFormat) {
           if (second !== first) {
             for (const third of groups[2]) {
               if (third !== first && third !== second) {
-                combinations.push(`${first}-${second}-${third}`);
+                combinations.push(`${first},${second},${third}`);
               }
             }
           }
@@ -73,7 +74,10 @@ function generateCombinationsForPayout(horses, betType, betFormat) {
             const combo = [first, second, third].sort((a, b) => parseInt(a) - parseInt(b));
             // 重複チェック
             if (combo[0] !== combo[1] && combo[1] !== combo[2] && combo[0] !== combo[2]) {
-              combinations.push(combo.join('-'));
+              const comboStr = combo.join(',');
+              if (!combinations.includes(comboStr)) {
+                combinations.push(comboStr);
+              }
             }
           }
         }
