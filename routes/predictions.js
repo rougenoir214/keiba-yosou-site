@@ -281,9 +281,16 @@ router.post('/:race_id/bets', requireAuth, async (req, res) => {
     if (bet_format === 'box' || bet_format === 'formation' || bet_format === 'nagashi') {
       // 馬番文字列を生成
       let horsesString = horses;
-      if (bet_format === 'formation' && first && second && third) {
-        // フォーメーション: '6>3,5,7>2,3,4,5,7,8,9'
-        horsesString = `${first}>${second}>${third}`;
+      
+      if (bet_format === 'formation') {
+        // 馬連・馬単のフォーメーション（流し）: 軸馬と相手馬
+        if (axis_horses && partner_horses) {
+          horsesString = `${axis_horses}>${partner_horses}`;
+        }
+        // 3連複・3連単のフォーメーション: 1着・2着・3着候補
+        else if (first && second && third) {
+          horsesString = `${first}>${second}>${third}`;
+        }
       } else if (bet_format === 'nagashi' && axis_horses && partner_horses) {
         // 流し: '1>2,3,4,5'
         horsesString = `${axis_horses}>${partner_horses}`;
@@ -357,38 +364,44 @@ router.post('/:race_id/auto-bet', requireAuth, async (req, res) => {
     } else if (markCount === 2) {
       // ②印2個：重い馬の単勝5,000円 + 2頭の馬連5,000円
       betsToInsert.push({ bet_type: 'tansho', horses: horses[0].toString(), amount: 5000 });
-      betsToInsert.push({ bet_type: 'umaren', horses: `${horses[0]},${horses[1]}`, amount: 5000 });
+      // 馬連は馬番順にソート
+      const umarenHorses = [horses[0], horses[1]].sort((a, b) => a - b);
+      betsToInsert.push({ bet_type: 'umaren', horses: `${umarenHorses[0]},${umarenHorses[1]}`, amount: 5000 });
       
     } else if (markCount === 3) {
       // ③印3個：単勝3,000円 + 馬連ボックス2,000円×3点 + 3連複1,000円
       betsToInsert.push({ bet_type: 'tansho', horses: horses[0].toString(), amount: 3000 });
       
-      // 馬連ボックス（3C2=3点）
+      // 馬連ボックス（3C2=3点）- 馬番順にソート
       for (let i = 0; i < 3; i++) {
         for (let j = i + 1; j < 3; j++) {
-          betsToInsert.push({ bet_type: 'umaren', horses: `${horses[i]},${horses[j]}`, amount: 2000 });
+          const umarenHorses = [horses[i], horses[j]].sort((a, b) => a - b);
+          betsToInsert.push({ bet_type: 'umaren', horses: `${umarenHorses[0]},${umarenHorses[1]}`, amount: 2000 });
         }
       }
       
-      // 3連複（1点）
-      betsToInsert.push({ bet_type: 'sanrenpuku', horses: `${horses[0]},${horses[1]},${horses[2]}`, amount: 1000 });
+      // 3連複（1点）- 馬番順にソート
+      const sanrenpukuHorses = [horses[0], horses[1], horses[2]].sort((a, b) => a - b);
+      betsToInsert.push({ bet_type: 'sanrenpuku', horses: `${sanrenpukuHorses[0]},${sanrenpukuHorses[1]},${sanrenpukuHorses[2]}`, amount: 1000 });
       
     } else if (markCount === 4) {
       // ④印4個：単勝2,000円 + 上位3頭の馬連ボックス2,000円×3点 + 4頭の3連複ボックス500円×4点
       betsToInsert.push({ bet_type: 'tansho', horses: horses[0].toString(), amount: 2000 });
       
-      // 上位3頭の馬連ボックス（3C2=3点）
+      // 上位3頭の馬連ボックス（3C2=3点）- 馬番順にソート
       for (let i = 0; i < 3; i++) {
         for (let j = i + 1; j < 3; j++) {
-          betsToInsert.push({ bet_type: 'umaren', horses: `${horses[i]},${horses[j]}`, amount: 2000 });
+          const umarenHorses = [horses[i], horses[j]].sort((a, b) => a - b);
+          betsToInsert.push({ bet_type: 'umaren', horses: `${umarenHorses[0]},${umarenHorses[1]}`, amount: 2000 });
         }
       }
       
-      // 4頭の3連複ボックス（4C3=4点）
+      // 4頭の3連複ボックス（4C3=4点）- 馬番順にソート
       for (let i = 0; i < 4; i++) {
         for (let j = i + 1; j < 4; j++) {
           for (let k = j + 1; k < 4; k++) {
-            betsToInsert.push({ bet_type: 'sanrenpuku', horses: `${horses[i]},${horses[j]},${horses[k]}`, amount: 500 });
+            const sanrenpukuHorses = [horses[i], horses[j], horses[k]].sort((a, b) => a - b);
+            betsToInsert.push({ bet_type: 'sanrenpuku', horses: `${sanrenpukuHorses[0]},${sanrenpukuHorses[1]},${sanrenpukuHorses[2]}`, amount: 500 });
           }
         }
       }
@@ -397,18 +410,20 @@ router.post('/:race_id/auto-bet', requireAuth, async (req, res) => {
       // ⑤印5個：単勝2,000円 + 上位3頭の馬連ボックス1,000円×3点 + 5頭の3連複ボックス500円×10点
       betsToInsert.push({ bet_type: 'tansho', horses: horses[0].toString(), amount: 2000 });
       
-      // 上位3頭の馬連ボックス（3C2=3点）
+      // 上位3頭の馬連ボックス（3C2=3点）- 馬番順にソート
       for (let i = 0; i < 3; i++) {
         for (let j = i + 1; j < 3; j++) {
-          betsToInsert.push({ bet_type: 'umaren', horses: `${horses[i]},${horses[j]}`, amount: 1000 });
+          const umarenHorses = [horses[i], horses[j]].sort((a, b) => a - b);
+          betsToInsert.push({ bet_type: 'umaren', horses: `${umarenHorses[0]},${umarenHorses[1]}`, amount: 1000 });
         }
       }
       
-      // 5頭の3連複ボックス（5C3=10点）
+      // 5頭の3連複ボックス（5C3=10点）- 馬番順にソート
       for (let i = 0; i < 5; i++) {
         for (let j = i + 1; j < 5; j++) {
           for (let k = j + 1; k < 5; k++) {
-            betsToInsert.push({ bet_type: 'sanrenpuku', horses: `${horses[i]},${horses[j]},${horses[k]}`, amount: 500 });
+            const sanrenpukuHorses = [horses[i], horses[j], horses[k]].sort((a, b) => a - b);
+            betsToInsert.push({ bet_type: 'sanrenpuku', horses: `${sanrenpukuHorses[0]},${sanrenpukuHorses[1]},${sanrenpukuHorses[2]}`, amount: 500 });
           }
         }
       }

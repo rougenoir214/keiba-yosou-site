@@ -53,7 +53,29 @@ function generateCombinationsForPayout(horses, betType, betFormat) {
     // フォーメーション買い: '>'で区切られた形式
     const groups = horses.split('>').map(g => g.split(',').map(h => h.trim()));
     
-    if (betType === 'sanrentan' && groups.length === 3) {
+    if (betType === 'umaren' && groups.length === 2) {
+      // 馬連フォーメーション（流し）: 軸馬と相手馬
+      for (const axis of groups[0]) {
+        for (const partner of groups[1]) {
+          if (axis !== partner) {
+            // 順不同なのでソート
+            const combo = [axis, partner].sort((a, b) => parseInt(a) - parseInt(b)).join(',');
+            if (!combinations.includes(combo)) {
+              combinations.push(combo);
+            }
+          }
+        }
+      }
+    } else if (betType === 'umatan' && groups.length === 2) {
+      // 馬単フォーメーション: 1着候補と2着候補
+      for (const first of groups[0]) {
+        for (const second of groups[1]) {
+          if (first !== second) {
+            combinations.push(`${first},${second}`);
+          }
+        }
+      }
+    } else if (betType === 'sanrentan' && groups.length === 3) {
       // 3連単フォーメーション
       for (const first of groups[0]) {
         for (const second of groups[1]) {

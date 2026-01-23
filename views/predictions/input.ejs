@@ -1211,26 +1211,33 @@ document.getElementById('bet-form').addEventListener('submit', async (e) => {
         bet_count: betCount
     };
     
-    // フォーメーション買いの場合、first/second/thirdを追加
+    // フォーメーション買いの場合、パラメータを追加
     if (buyMethod === 'formation') {
-        // 馬券種別に応じてチェックボックス名を決定
-        let firstCheckboxName, secondCheckboxName, thirdCheckboxName;
-        
-        if (betType === 'sanrenpuku') {
-            firstCheckboxName = 'sanrenpuku_form_first';
-            secondCheckboxName = 'sanrenpuku_form_second';
-            thirdCheckboxName = 'sanrenpuku_form_third';
+        if (betType === 'umaren') {
+            // 馬連フォーメーション: 軸馬と相手馬
+            const axisVals = Array.from(document.querySelectorAll('input[name="umaren_form_axis"]:checked')).map(cb => cb.value);
+            const partnerVals = Array.from(document.querySelectorAll('input[name="umaren_form_partner"]:checked')).map(cb => cb.value);
+            data.axis_horses = axisVals.join(',');
+            data.partner_horses = partnerVals.join(',');
+        } else if (betType === 'umatan') {
+            // 馬単フォーメーション: 1着候補と2着候補
+            const firstVals = Array.from(document.querySelectorAll('input[name="umatan_form_first"]:checked')).map(cb => cb.value);
+            const secondVals = Array.from(document.querySelectorAll('input[name="umatan_form_second"]:checked')).map(cb => cb.value);
+            data.first = firstVals.join(',');
+            data.second = secondVals.join(',');
+        } else if (betType === 'sanrenpuku') {
+            // 3連複フォーメーション: 1着・2着・3着候補
+            const firstVals = Array.from(document.querySelectorAll('input[name="sanrenpuku_form_first"]:checked')).map(cb => cb.value);
+            const secondVals = Array.from(document.querySelectorAll('input[name="sanrenpuku_form_second"]:checked')).map(cb => cb.value);
+            const thirdVals = Array.from(document.querySelectorAll('input[name="sanrenpuku_form_third"]:checked')).map(cb => cb.value);
+            data.first = firstVals.join(',');
+            data.second = secondVals.join(',');
+            data.third = thirdVals.join(',');
         } else if (betType === 'sanrentan') {
-            firstCheckboxName = 'sanrentan_form_first';
-            secondCheckboxName = 'sanrentan_form_second';
-            thirdCheckboxName = 'sanrentan_form_third';
-        }
-        
-        if (firstCheckboxName) {
-            const firstVals = Array.from(document.querySelectorAll(`input[name="${firstCheckboxName}"]:checked`)).map(cb => cb.value);
-            const secondVals = Array.from(document.querySelectorAll(`input[name="${secondCheckboxName}"]:checked`)).map(cb => cb.value);
-            const thirdVals = Array.from(document.querySelectorAll(`input[name="${thirdCheckboxName}"]:checked`)).map(cb => cb.value);
-            
+            // 3連単フォーメーション: 1着・2着・3着候補
+            const firstVals = Array.from(document.querySelectorAll('input[name="sanrentan_form_first"]:checked')).map(cb => cb.value);
+            const secondVals = Array.from(document.querySelectorAll('input[name="sanrentan_form_second"]:checked')).map(cb => cb.value);
+            const thirdVals = Array.from(document.querySelectorAll('input[name="sanrentan_form_third"]:checked')).map(cb => cb.value);
             data.first = firstVals.join(',');
             data.second = secondVals.join(',');
             data.third = thirdVals.join(',');
