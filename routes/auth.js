@@ -122,7 +122,7 @@ router.post('/settings/update', async (req, res) => {
     return res.redirect('/auth/login');
   }
 
-  const { username, display_name, password } = req.body;
+  const { username, display_name, current_password, new_password, new_password_confirm } = req.body;
   const userId = req.session.user.id;
 
   try {
@@ -141,14 +141,33 @@ router.post('/settings/update', async (req, res) => {
     }
 
     const user = userResult.rows[0];
-    const passwordMatch = await bcrypt.compare(password, user.password_hash);
+    const passwordMatch = await bcrypt.compare(current_password, user.password_hash);
 
     if (!passwordMatch) {
       return res.render('auth/settings', {
         user: req.session.user,
-        error: 'パスワードが正しくありません',
+        error: '現在のパスワードが正しくありません',
         success: null
       });
+    }
+
+    // パスワード変更のチェック（入力されている場合のみ）
+    if (new_password || new_password_confirm) {
+      if (new_password !== new_password_confirm) {
+        return res.render('auth/settings', {
+          user: req.session.user,
+          error: '新しいパスワードと確認用パスワードが一致しません',
+          success: null
+        });
+      }
+
+      if (new_password.length < 6) {
+        return res.render('auth/settings', {
+          user: req.session.user,
+          error: '新しいパスワードは6文字以上にしてください',
+          success: null
+        });
+      }
     }
 
     // ユーザー名が変更されている場合、重複チェック
@@ -167,20 +186,33 @@ router.post('/settings/update', async (req, res) => {
       }
     }
 
-    // ユーザー情報を更新
-    await pool.query(
-      'UPDATE users SET username = $1, display_name = $2 WHERE id = $3',
-      [username, display_name, userId]
-    );
+    // パスワードも変更する場合
+    if (new_password) {
+      const new_password_hash = await bcrypt.hash(new_password, 10);
+      await pool.query(
+        'UPDATE users SET username = $1, display_name = $2, password_hash = $3 WHERE id = $4',
+        [username, display_name, new_password_hash, userId]
+      );
+    } else {
+      // パスワードは変更しない
+      await pool.query(
+        'UPDATE users SET username = $1, display_name = $2 WHERE id = $3',
+        [username, display_name, userId]
+      );
+    }
 
     // セッション情報も更新
     req.session.user.username = username;
     req.session.user.display_name = display_name;
 
+    const successMessage = new_password 
+      ? '✅ ユーザー情報とパスワードを更新しました' 
+      : '✅ ユーザー情報を更新しました';
+
     res.render('auth/settings', {
       user: req.session.user,
       error: null,
-      success: '✅ ユーザー情報を更新しました'
+      success: successMessage
     });
   } catch (error) {
     console.error(error);

@@ -248,9 +248,41 @@
         </label>
         <input 
           type="password" 
-          name="password" 
+          name="current_password" 
           required
           placeholder="セキュリティのため入力してください"
+        >
+      </div>
+
+      <hr style="margin: 30px 0; border: none; border-top: 1px solid #e0e0e0;">
+
+      <h3 style="margin-bottom: 15px; color: #333; font-size: 18px;">🔐 パスワード変更（任意）</h3>
+      <p style="margin-bottom: 20px; font-size: 13px; color: #666;">パスワードを変更する場合のみ入力してください</p>
+
+      <div class="form-group">
+        <label>
+          新しいパスワード
+          <span class="input-hint">※6文字以上、変更しない場合は空欄</span>
+        </label>
+        <input 
+          type="password" 
+          name="new_password"
+          id="new_password"
+          minlength="6"
+          placeholder="変更しない場合は空欄のまま"
+        >
+      </div>
+
+      <div class="form-group">
+        <label>
+          新しいパスワード（確認用）
+          <span class="input-hint">※上と同じパスワードを入力</span>
+        </label>
+        <input 
+          type="password" 
+          name="new_password_confirm"
+          id="new_password_confirm"
+          placeholder="確認のため再入力"
         >
       </div>
 
@@ -266,5 +298,28 @@
 
     <a href="/" class="back-link">← トップページに戻る</a>
   </div>
+
+  <script>
+    // フォーム送信時のバリデーション
+    document.querySelector('form').addEventListener('submit', function(e) {
+      const newPassword = document.getElementById('new_password').value;
+      const confirmPassword = document.getElementById('new_password_confirm').value;
+
+      // パスワード変更する場合のチェック
+      if (newPassword || confirmPassword) {
+        if (newPassword !== confirmPassword) {
+          e.preventDefault();
+          alert('新しいパスワードと確認用パスワードが一致しません');
+          return false;
+        }
+        
+        if (newPassword.length < 6) {
+          e.preventDefault();
+          alert('新しいパスワードは6文字以上にしてください');
+          return false;
+        }
+      }
+    });
+  </script>
 </body>
 </html>

@@ -735,4 +735,61 @@ router.post('/delete-race/:race_id', requireAdmin, async (req, res) => {
   }
 });
 
+// ユーザー一覧ページ
+router.get('/users', requireAdmin, async (req, res) => {
+  try {
+    const result = await pool.query(
+      'SELECT id, username, display_name, created_at, is_admin FROM users ORDER BY created_at DESC'
+    );
+    
+    res.render('admin/users', { 
+      user: req.session.user,
+      users: result.rows,
+      message: null,
+      error: null
+    });
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).send('エラーが発生しました: ' + error.message);
+  }
+});
+
+// パスワード初期化
+router.post('/users/:id/reset-password', requireAdmin, async (req, res) => {
+  const userId = req.params.id;
+  const DEFAULT_PASSWORD = 'password123'; // 固定の初期パスワード
+  
+  try {
+    const bcrypt = require('bcrypt');
+    
+    // 対象ユーザーの情報を取得
+    const userResult = await pool.query(
+      'SELECT username, display_name FROM users WHERE id = $1',
+      [userId]
+    );
+    
+    if (userResult.rows.length === 0) {
+      return res.status(404).send('ユーザーが見つかりません');
+    }
+    
+    const targetUser = userResult.rows[0];
+    
+    // 固定パスワードをハッシュ化
+    const password_hash = await bcrypt.hash(DEFAULT_PASSWORD, 10);
+    
+    // パスワードを更新
+    await pool.query(
+      'UPDATE users SET password_hash = $1 WHERE id = $2',
+      [password_hash, userId]
+    );
+    
+    console.log(`✓ パスワード初期化: ${targetUser.username} (${targetUser.display_name}) → ${DEFAULT_PASSWORD}`);
+    res.send(`成功: ${targetUser.display_name} のパスワードを「${DEFAULT_PASSWORD}」に初期化しました。\n\nユーザーに初期パスワードでログイン後、パスワード変更するよう伝えてください。`);
+    
+  } catch (error) {
+    console.error('Error resetting password:', error);
+    res.status(500).send('エラーが発生しました: ' + error.message);
+  }
+});
+
 module.exports = router;

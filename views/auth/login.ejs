@@ -85,6 +85,15 @@
         .link a:hover {
             text-decoration: underline;
         }
+        .info-box {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 12px 15px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #1976d2;
+        }
     </style>
 </head>
 <body>
@@ -94,6 +103,12 @@
         <% if (error) { %>
             <div class="error"><%= error %></div>
         <% } %>
+        
+        <div class="info-box">
+            💡 <strong>パスワードを忘れた場合</strong><br>
+            管理者に連絡して、パスワードを初期化してもらってください。<br>
+            初期パスワードでログイン後、必ず新しいパスワードに変更してください。
+        </div>
         
         <form action="/auth/login" method="POST">
             <div class="form-group">
