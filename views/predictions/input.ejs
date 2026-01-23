@@ -657,9 +657,22 @@ const sortedBets = bets.sort((a, b) => {
 });
 let totalAmount = 0;
 %>
-<% sortedBets.forEach(bet => { totalAmount += bet.amount; %>
+<% sortedBets.forEach(bet => { 
+    totalAmount += bet.amount; 
+    const betFormat = bet.bet_format || 'single';
+    
+    // 表示用の馬番文字列を生成
+    let horsesDisplay = '';
+    if (betFormat === 'box') {
+        horsesDisplay = '<span style="background: #fff3cd; padding: 3px 10px; border-radius: 4px; font-weight: bold; font-size: 0.85rem; margin-right: 8px; border: 1px solid #ffc107;">BOX</span>' + bet.horses.replace(/,/g, ', ');
+    } else if (betFormat === 'formation') {
+        horsesDisplay = '<span style="background: #d1ecf1; padding: 3px 10px; border-radius: 4px; font-weight: bold; font-size: 0.85rem; margin-right: 8px; border: 1px solid #17a2b8;">フォーメーション</span>' + bet.horses.replace(/>/g, ' <span style="color: #667eea; font-weight: bold;">▶</span> ').replace(/,/g, ', ');
+    } else {
+        horsesDisplay = bet.horses.replace(/,/g, ' - ');
+    }
+%>
 <li class="bet-item">
-<div class="bet-info"><strong><%= betTypeNames[bet.bet_type] %></strong>: <%= bet.horses.replace(/,/g, '-') %> - <%= bet.amount.toLocaleString() %>円</div>
+<div class="bet-info"><strong><%= betTypeNames[bet.bet_type] %></strong>: <%- horsesDisplay %> - <%= bet.amount.toLocaleString() %>円</div>
 <% if (canDeleteBets) { %>
 <button class="btn btn-danger" onclick="deleteBet(<%= bet.id %>)">削除</button>
 <% } %>
