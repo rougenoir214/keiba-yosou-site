@@ -2,6 +2,88 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../db/connection');
 
+// ボックス・フォーメーション買いの組み合わせ生成
+function generateCombinationsForPayout(horses, betType, betFormat) {
+  const horseArray = horses.split(',').map(h => h.trim());
+  const combinations = [];
+  
+  if (betFormat === 'box') {
+    // ボックス買い: すべての組み合わせを生成
+    if (betType === 'umaren' || betType === 'wide') {
+      // 2頭の組み合わせ
+      for (let i = 0; i < horseArray.length; i++) {
+        for (let j = i + 1; j < horseArray.length; j++) {
+          combinations.push([horseArray[i], horseArray[j]].sort((a, b) => parseInt(a) - parseInt(b)).join('-'));
+        }
+      }
+    } else if (betType === 'umatan') {
+      // 馬単: 順序あり2頭
+      for (let i = 0; i < horseArray.length; i++) {
+        for (let j = 0; j < horseArray.length; j++) {
+          if (i !== j) {
+            combinations.push(`${horseArray[i]}-${horseArray[j]}`);
+          }
+        }
+      }
+    } else if (betType === 'sanrenpuku') {
+      // 3連複: 3頭の組み合わせ
+      for (let i = 0; i < horseArray.length; i++) {
+        for (let j = i + 1; j < horseArray.length; j++) {
+          for (let k = j + 1; k < horseArray.length; k++) {
+            combinations.push([horseArray[i], horseArray[j], horseArray[k]].sort((a, b) => parseInt(a) - parseInt(b)).join('-'));
+          }
+        }
+      }
+    } else if (betType === 'sanrentan') {
+      // 3連単: 順序あり3頭
+      for (let i = 0; i < horseArray.length; i++) {
+        for (let j = 0; j < horseArray.length; j++) {
+          if (i !== j) {
+            for (let k = 0; k < horseArray.length; k++) {
+              if (k !== i && k !== j) {
+                combinations.push(`${horseArray[i]}-${horseArray[j]}-${horseArray[k]}`);
+              }
+            }
+          }
+        }
+      }
+    }
+  } else if (betFormat === 'formation') {
+    // フォーメーション買い
+    const groups = horses.split('>').map(g => g.split(',').map(h => h.trim()));
+    
+    if (betType === 'sanrentan' && groups.length === 3) {
+      // 3連単フォーメーション
+      for (const first of groups[0]) {
+        for (const second of groups[1]) {
+          if (second !== first) {
+            for (const third of groups[2]) {
+              if (third !== first && third !== second) {
+                combinations.push(`${first}-${second}-${third}`);
+              }
+            }
+          }
+        }
+      }
+    } else if (betType === 'sanrenpuku' && groups.length === 3) {
+      // 3連複フォーメーション
+      for (const first of groups[0]) {
+        for (const second of groups[1]) {
+          for (const third of groups[2]) {
+            const combo = [first, second, third].sort((a, b) => parseInt(a) - parseInt(b));
+            // 重複チェック
+            if (combo[0] !== combo[1] && combo[1] !== combo[2] && combo[0] !== combo[2]) {
+              combinations.push(combo.join('-'));
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  return combinations;
+}
+
 // レース一覧（直近2週間のみ）
 router.get('/', async (req, res) => {
   try {
@@ -274,29 +356,77 @@ router.post('/:race_id/calculate-payouts', async (req, res) => {
     let calculatedCount = 0;
     
     for (const bet of betsResult.rows) {
-      const key = `${bet.bet_type}-${bet.horses}`;
-      const payout = payoutMap[key];
+      const betFormat = bet.bet_format || 'single';
+      let isHit = false;
+      let hitPayout = 0;
       
-      console.log('馬券チェック:', key, '→', payout ? '的中' : '不的中');
-      
-      if (payout) {
-        const payoutAmount = payout * (bet.amount / 100);
+      if (betFormat === 'box' || betFormat === 'formation') {
+        // ボックス・フォーメーション買い: 組み合わせを生成して的中判定
+        const combinations = generateCombinationsForPayout(bet.horses, bet.bet_type, betFormat);
+        console.log(`${betFormat}買い判定: ${bet.horses} → ${combinations.length}通り`);
         
-        console.log(`  購入額: ${bet.amount}円, 払戻: ${payout}円/100円, 配当: ${payoutAmount}円`);
+        // いずれかの組み合わせが的中しているかチェック
+        for (const combo of combinations) {
+          const key = `${bet.bet_type}-${combo}`;
+          const payout = payoutMap[key];
+          
+          if (payout) {
+            isHit = true;
+            hitPayout = payout;
+            console.log(`  的中! ${combo} → ${payout}円/100円`);
+            break; // 1つでも的中していればOK
+          }
+        }
         
-        await pool.query(
-          `INSERT INTO payouts (bet_id, payout_amount) VALUES ($1, $2)
-           ON CONFLICT (bet_id) DO UPDATE SET payout_amount = EXCLUDED.payout_amount, calculated_at = CURRENT_TIMESTAMP`,
-          [bet.id, payoutAmount]
-        );
-        
-        calculatedCount++;
+        if (isHit) {
+          // 的中した場合: 1点あたりの配当 × 購入単価
+          // bet.amountは既に合計金額なので、点数で割って1点あたりの金額を出す
+          const perBetAmount = bet.amount / combinations.length;
+          const payoutAmount = hitPayout * (perBetAmount / 100);
+          
+          console.log(`  購入額: ${bet.amount}円 (${combinations.length}点 × ${perBetAmount}円), 払戻: ${hitPayout}円/100円, 配当: ${payoutAmount}円`);
+          
+          await pool.query(
+            `INSERT INTO payouts (bet_id, payout_amount) VALUES ($1, $2)
+             ON CONFLICT (bet_id) DO UPDATE SET payout_amount = EXCLUDED.payout_amount, calculated_at = CURRENT_TIMESTAMP`,
+            [bet.id, payoutAmount]
+          );
+          
+          calculatedCount++;
+        } else {
+          console.log('  不的中');
+          await pool.query(
+            `INSERT INTO payouts (bet_id, payout_amount) VALUES ($1, 0)
+             ON CONFLICT (bet_id) DO UPDATE SET payout_amount = 0, calculated_at = CURRENT_TIMESTAMP`,
+            [bet.id]
+          );
+        }
       } else {
-        await pool.query(
-          `INSERT INTO payouts (bet_id, payout_amount) VALUES ($1, 0)
-           ON CONFLICT (bet_id) DO UPDATE SET payout_amount = 0, calculated_at = CURRENT_TIMESTAMP`,
-          [bet.id]
-        );
+        // 単式: 従来通りの判定
+        const key = `${bet.bet_type}-${bet.horses}`;
+        const payout = payoutMap[key];
+        
+        console.log('単式馬券チェック:', key, '→', payout ? '的中' : '不的中');
+        
+        if (payout) {
+          const payoutAmount = payout * (bet.amount / 100);
+          
+          console.log(`  購入額: ${bet.amount}円, 払戻: ${payout}円/100円, 配当: ${payoutAmount}円`);
+          
+          await pool.query(
+            `INSERT INTO payouts (bet_id, payout_amount) VALUES ($1, $2)
+             ON CONFLICT (bet_id) DO UPDATE SET payout_amount = EXCLUDED.payout_amount, calculated_at = CURRENT_TIMESTAMP`,
+            [bet.id, payoutAmount]
+          );
+          
+          calculatedCount++;
+        } else {
+          await pool.query(
+            `INSERT INTO payouts (bet_id, payout_amount) VALUES ($1, 0)
+             ON CONFLICT (bet_id) DO UPDATE SET payout_amount = 0, calculated_at = CURRENT_TIMESTAMP`,
+            [bet.id]
+          );
+        }
       }
     }
     
