@@ -258,6 +258,17 @@ router.post('/:race_id/bets', requireAuth, async (req, res) => {
     
     const existingBets = await pool.query('SELECT SUM(amount) as total FROM bets WHERE user_id = $1 AND race_id = $2', [req.session.user.id, req.params.race_id]);
     const currentTotal = parseInt(existingBets.rows[0].total) || 0;
+    
+    // bet_formatを決定
+    let bet_format = 'single';
+    if (buy_method === 'box') {
+      bet_format = 'box';
+    } else if (buy_method === 'formation') {
+      bet_format = 'formation';
+    } else if (buy_method === 'nagashi') {
+      bet_format = 'nagashi';
+    }
+    
     const combinations = generateCombinations(horses, bet_type, buy_method, axis_horses, partner_horses, first, second, third);
     const totalCost = combinations.length * parseInt(amount);
     const newTotal = currentTotal + totalCost;
@@ -266,8 +277,32 @@ router.post('/:race_id/bets', requireAuth, async (req, res) => {
       return res.status(400).json({ error: `購入金額の上限（10,000円）を超えています。残り: ${10000 - currentTotal}円。${combinations.length}点 × ${amount}円 = ${totalCost}円` });
     }
     
-    for (const combo of combinations) {
-      await pool.query('INSERT INTO bets (user_id, race_id, bet_type, horses, amount) VALUES ($1, $2, $3, $4, $5)', [req.session.user.id, req.params.race_id, bet_type, combo, parseInt(amount)]);
+    // ボックス・フォーメーション・流しの場合は1件の馬券として保存
+    if (bet_format === 'box' || bet_format === 'formation' || bet_format === 'nagashi') {
+      // 馬番文字列を生成
+      let horsesString = horses;
+      if (bet_format === 'formation' && first && second && third) {
+        // フォーメーション: '6>3,5,7>2,3,4,5,7,8,9'
+        horsesString = `${first}>${second}>${third}`;
+      } else if (bet_format === 'nagashi' && axis_horses && partner_horses) {
+        // 流し: '1>2,3,4,5'
+        horsesString = `${axis_horses}>${partner_horses}`;
+      }
+      // ボックスの場合はhorsesをそのまま使用
+      
+      // 1件の馬券として登録
+      await pool.query(
+        'INSERT INTO bets (user_id, race_id, bet_type, horses, amount, bet_format) VALUES ($1, $2, $3, $4, $5, $6)',
+        [req.session.user.id, req.params.race_id, bet_type, horsesString, totalCost, bet_format]
+      );
+    } else {
+      // 単式の場合は従来通り個別に登録
+      for (const combo of combinations) {
+        await pool.query(
+          'INSERT INTO bets (user_id, race_id, bet_type, horses, amount, bet_format) VALUES ($1, $2, $3, $4, $5, $6)',
+          [req.session.user.id, req.params.race_id, bet_type, combo, parseInt(amount), 'single']
+        );
+      }
     }
     
     res.json({ success: true, remaining: 10000 - newTotal, count: combinations.length, total: totalCost });
@@ -382,8 +417,8 @@ router.post('/:race_id/auto-bet', requireAuth, async (req, res) => {
     // 馬券を一括登録
     for (const bet of betsToInsert) {
       await pool.query(
-        'INSERT INTO bets (user_id, race_id, bet_type, horses, amount) VALUES ($1, $2, $3, $4, $5)',
-        [req.session.user.id, req.params.race_id, bet.bet_type, bet.horses, bet.amount]
+        'INSERT INTO bets (user_id, race_id, bet_type, horses, amount, bet_format) VALUES ($1, $2, $3, $4, $5, $6)',
+        [req.session.user.id, req.params.race_id, bet.bet_type, bet.horses, bet.amount, 'single']
       );
     }
     
