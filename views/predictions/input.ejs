@@ -1210,6 +1210,32 @@ document.getElementById('bet-form').addEventListener('submit', async (e) => {
         buy_method: buyMethod,
         bet_count: betCount
     };
+    
+    // フォーメーション買いの場合、first/second/thirdを追加
+    if (buyMethod === 'formation') {
+        // 馬券種別に応じてチェックボックス名を決定
+        let firstCheckboxName, secondCheckboxName, thirdCheckboxName;
+        
+        if (betType === 'sanrenpuku') {
+            firstCheckboxName = 'sanrenpuku_form_first';
+            secondCheckboxName = 'sanrenpuku_form_second';
+            thirdCheckboxName = 'sanrenpuku_form_third';
+        } else if (betType === 'sanrentan') {
+            firstCheckboxName = 'sanrentan_form_first';
+            secondCheckboxName = 'sanrentan_form_second';
+            thirdCheckboxName = 'sanrentan_form_third';
+        }
+        
+        if (firstCheckboxName) {
+            const firstVals = Array.from(document.querySelectorAll(`input[name="${firstCheckboxName}"]:checked`)).map(cb => cb.value);
+            const secondVals = Array.from(document.querySelectorAll(`input[name="${secondCheckboxName}"]:checked`)).map(cb => cb.value);
+            const thirdVals = Array.from(document.querySelectorAll(`input[name="${thirdCheckboxName}"]:checked`)).map(cb => cb.value);
+            
+            data.first = firstVals.join(',');
+            data.second = secondVals.join(',');
+            data.third = thirdVals.join(',');
+        }
+    }
 
     try {
         const r = await fetch('/predictions/<%= race.race_id %>/bets', {
