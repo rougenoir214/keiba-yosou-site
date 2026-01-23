@@ -292,60 +292,99 @@
         <% } %>
 
         <% if (user && allBets && allBets.length > 0) { %>
-        <div class="shutuba-table" style="margin-top: 20px;">
-            <h2 style="padding: 20px; margin: 0; background: #667eea; color: white;">🎫 購入済み馬券一覧</h2>
-            <div style="padding: 20px;">
-                <% const betTypeNames = { 'tansho': '単勝', 'fukusho': '複勝', 'umaren': '馬連', 'umatan': '馬単', 'wide': 'ワイド', 'sanrenpuku': '3連複', 'sanrentan': '3連単' }; %>
-                <% const userBets = {}; %>
-                <% allBets.forEach(bet => { %>
-                    <% if (!userBets[bet.display_name]) userBets[bet.display_name] = []; %>
-                    <% userBets[bet.display_name].push(bet); %>
-                <% }); %>
+        <div class="section" style="margin-top: 30px;">
+            <h2>🎫 購入済み馬券</h2>
+            <% const betTypeNames = { 'tansho': '単勝', 'fukusho': '複勝', 'umaren': '馬連', 'umatan': '馬単', 'wide': 'ワイド', 'sanrenpuku': '3連複', 'sanrentan': '3連単' }; %>
+            <% const userBets = {}; %>
+            <% allBets.forEach(bet => { %>
+                <% if (!userBets[bet.display_name]) userBets[bet.display_name] = []; %>
+                <% userBets[bet.display_name].push(bet); %>
+            <% }); %>
+            
+            <% Object.keys(userBets).forEach(userName => { %>
+                <%
+                // 発走時刻をチェック
+                const now = new Date();
+                const raceDateTime = new Date(race.race_date);
+                const [hours, minutes] = race.race_time.split(':');
+                raceDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+                const isTestMode = process.env.TEST_MODE === 'true';
+                const canDeleteBets = isTestMode || (now < raceDateTime);
                 
-                <% Object.keys(userBets).forEach(userName => { %>
-                    <%
-                    // 発走時刻をチェック
-                    const now = new Date();
-                    const raceDateTime = new Date(race.race_date);
-                    const [hours, minutes] = race.race_time.split(':');
-                    raceDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
-                    const isTestMode = process.env.TEST_MODE === 'true';
-                    const canDeleteBets = isTestMode || (now < raceDateTime);
-                    %>
-                    <div style="margin-bottom: 20px; border: 1px solid #e0e0e0; border-radius: 8px; padding: 15px; background: #f9f9f9;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <h3 style="color: #667eea; margin: 0;">👤 <%= userName %></h3>
+                // ユーザーの合計金額を計算
+                let userTotal = 0;
+                userBets[userName].forEach(bet => { userTotal += bet.amount; });
+                %>
+                <div style="margin-bottom: 30px; padding: 20px; border: 2px solid #667eea; border-radius: 10px; background: <%= user && user.display_name === userName ? '#f0f4ff' : '#ffffff' %>;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                        <h3 style="color: #667eea; margin: 0;">👤 <%= userName %></h3>
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <div style="font-size: 14px; color: #666;">
+                                合計: <span style="font-size: 18px; font-weight: bold; color: #667eea;"><%= userTotal.toLocaleString() %>円</span>
+                            </div>
                             <% if (user && user.display_name === userName && canDeleteBets) { %>
-                                <button onclick="deleteMyBets()" style="padding: 8px 16px; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">🗑️ 自分の馬券を削除</button>
+                                <button onclick="deleteMyBets()" style="padding: 8px 16px; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px;">🗑️ 全削除</button>
                             <% } %>
                         </div>
-                        <table style="width: 100%; border-collapse: collapse;">
-                            <thead>
-                                <tr style="background: white;">
-                                    <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">馬券種別</th>
-                                    <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">馬番</th>
-                                    <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">金額</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <% let userTotal = 0; %>
-                                <% userBets[userName].forEach(bet => { %>
-                                    <% userTotal += bet.amount; %>
-                                    <tr style="background: white;">
-                                        <td style="padding: 8px; border-bottom: 1px solid #eee;"><%= betTypeNames[bet.bet_type] %></td>
-                                        <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong><%= bet.horses.replace(/,/g, '-') %></strong></td>
-                                        <td style="padding: 8px; border-bottom: 1px solid #eee;"><%= bet.amount.toLocaleString() %>円</td>
-                                    </tr>
-                                <% }); %>
-                                <tr style="background: white; font-weight: bold;">
-                                    <td style="padding: 8px; border-top: 2px solid #667eea;" colspan="2">合計</td>
-                                    <td style="padding: 8px; border-top: 2px solid #667eea;"><%= userTotal.toLocaleString() %>円</td>
-                                </tr>
-                            </tbody>
-                        </table>
                     </div>
-                <% }); %>
-            </div>
+                    
+                    <!-- テーブル形式での表示 -->
+                    <table style="width: 100%; border-collapse: collapse; background: white;">
+                        <thead>
+                            <tr style="background: #667eea; color: white;">
+                                <th style="padding: 10px; text-align: left; border-bottom: 2px solid #5568d3;">馬券種別</th>
+                                <th style="padding: 10px; text-align: left; border-bottom: 2px solid #5568d3;">馬番・組み合わせ</th>
+                                <th style="padding: 10px; text-align: right; border-bottom: 2px solid #5568d3;">金額</th>
+                                <% if (user && user.display_name === userName && canDeleteBets) { %>
+                                    <th style="padding: 10px; text-align: center; border-bottom: 2px solid #5568d3; width: 80px;">操作</th>
+                                <% } %>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% 
+                            // 馬券種別の順序
+                            const betTypeOrder = { 'tansho': 1, 'fukusho': 2, 'umaren': 3, 'wide': 4, 'umatan': 5, 'sanrenpuku': 6, 'sanrentan': 7 };
+                            // ソート
+                            const sortedUserBets = userBets[userName].sort((a, b) => {
+                                return (betTypeOrder[a.bet_type] || 99) - (betTypeOrder[b.bet_type] || 99);
+                            });
+                            
+                            sortedUserBets.forEach(bet => { 
+                                const betTypeName = betTypeNames[bet.bet_type] || bet.bet_type;
+                                const betFormat = bet.bet_format || 'single';
+                                
+                                // 表示用の馬番文字列を生成
+                                let horsesDisplay = '';
+                                if (betFormat === 'box') {
+                                    horsesDisplay = '<span style="background: #fff3cd; padding: 2px 8px; border-radius: 3px; font-weight: bold;">BOX</span> ' + bet.horses.replace(/,/g, ', ');
+                                } else if (betFormat === 'formation') {
+                                    horsesDisplay = '<span style="background: #d1ecf1; padding: 2px 8px; border-radius: 3px; font-weight: bold;">フォーメーション</span> ' + bet.horses.replace(/>/g, ' <span style="color: #667eea;">▶</span> ').replace(/,/g, ', ');
+                                } else {
+                                    horsesDisplay = bet.horses.replace(/,/g, ' - ');
+                                }
+                            %>
+                            <tr style="border-bottom: 1px solid #eee;">
+                                <td style="padding: 10px;"><strong><%= betTypeName %></strong></td>
+                                <td style="padding: 10px;"><%- horsesDisplay %></td>
+                                <td style="padding: 10px; text-align: right; font-weight: bold;"><%= bet.amount.toLocaleString() %>円</td>
+                                <% if (user && user.display_name === userName && canDeleteBets) { %>
+                                    <td style="padding: 10px; text-align: center;">
+                                        <button onclick="deleteSingleBet(<%= bet.id %>)" style="padding: 5px 10px; background: #ff5252; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">削除</button>
+                                    </td>
+                                <% } %>
+                            </tr>
+                            <% }); %>
+                            <tr style="background: #f5f5f5; font-weight: bold;">
+                                <td colspan="2" style="padding: 12px; border-top: 2px solid #667eea;">合計</td>
+                                <td style="padding: 12px; text-align: right; border-top: 2px solid #667eea; color: #667eea; font-size: 16px;"><%= userTotal.toLocaleString() %>円</td>
+                                <% if (user && user.display_name === userName && canDeleteBets) { %>
+                                    <td style="border-top: 2px solid #667eea;"></td>
+                                <% } %>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            <% }); %>
         </div>
         <% } %>
     </div>
@@ -393,6 +432,32 @@ async function deleteMyBets() {
     try {
         const response = await fetch(`/races/${raceId}/delete-my-bets`, {
             method: 'POST'
+        });
+        
+        const text = await response.text();
+        
+        if (response.ok) {
+            alert(text);
+            // ページをリロード
+            location.reload();
+        } else {
+            alert('エラー: ' + text);
+        }
+    } catch (error) {
+        console.error(error);
+        alert('エラーが発生しました: ' + error.message);
+    }
+}
+
+// 個別の馬券を削除
+async function deleteSingleBet(betId) {
+    if (!confirm('この馬券を削除しますか？\n\nこの操作は取り消せません。')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/races/bets/${betId}`, {
+            method: 'DELETE'
         });
         
         const text = await response.text();

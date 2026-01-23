@@ -172,6 +172,7 @@ router.get('/:race_id', async (req, res) => {
     res.render('races/detail', {
       race: raceResult.rows[0],
       horses: horsesResult.rows,
+      horses_data: horsesResult.rows,
       allBets: betsResult.rows,
       predictions: predictionsResult.rows,
       user: req.session.user
@@ -223,6 +224,12 @@ router.get('/:race_id/result', async (req, res) => {
       [req.params.race_id]
     );
     
+    // 馬名データを取得（馬券表示用）
+    const horsesDataResult = await pool.query(
+      'SELECT umaban, horse_name FROM horses WHERE race_id = $1',
+      [req.params.race_id]
+    );
+    
     if (raceResult.rows.length === 0) {
       return res.status(404).send('レースが見つかりません');
     }
@@ -233,6 +240,7 @@ router.get('/:race_id/result', async (req, res) => {
       payouts: payoutsResult.rows,
       allBets: betsResult.rows,
       predictions: predictionsResult.rows,
+      horses_data: horsesDataResult.rows,
       user: req.session.user
     });
   } catch (error) {
@@ -373,6 +381,76 @@ router.post('/:race_id/delete-my-bets', async (req, res) => {
     console.error('Error message:', error.message);
     console.error('Error stack:', error.stack);
     console.error('===========================');
+    res.status(500).send('エラーが発生しました: ' + error.message);
+  }
+});
+
+// 個別の馬券を削除
+router.delete('/bets/:bet_id', async (req, res) => {
+  // ログインチェック
+  if (!req.session.user) {
+    return res.status(401).send('ログインが必要です');
+  }
+
+  const { bet_id } = req.params;
+  const userId = req.session.user.id;
+
+  try {
+    // 馬券の所有者を確認
+    const betResult = await pool.query(
+      'SELECT * FROM bets WHERE id = $1',
+      [bet_id]
+    );
+
+    if (betResult.rows.length === 0) {
+      return res.status(404).send('馬券が見つかりません');
+    }
+
+    const bet = betResult.rows[0];
+
+    // 自分の馬券かチェック
+    if (bet.user_id !== userId) {
+      return res.status(403).send('他のユーザーの馬券は削除できません');
+    }
+
+    // レースの発走時刻を確認
+    const raceResult = await pool.query(
+      'SELECT * FROM races WHERE race_id = $1',
+      [bet.race_id]
+    );
+
+    if (raceResult.rows.length === 0) {
+      return res.status(404).send('レースが見つかりません');
+    }
+
+    const race = raceResult.rows[0];
+    const now = new Date();
+    const raceDateTime = new Date(race.race_date);
+    const [hours, minutes] = race.race_time.split(':');
+    raceDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+    // テストモードでない限り、発走後は削除不可
+    const isTestMode = process.env.TEST_MODE === 'true';
+    if (!isTestMode && now >= raceDateTime) {
+      return res.status(403).send('レース発走後は馬券を削除できません');
+    }
+
+    // 払い戻し情報を削除
+    await pool.query(
+      'DELETE FROM payouts WHERE bet_id = $1',
+      [bet_id]
+    );
+
+    // 馬券を削除
+    await pool.query(
+      'DELETE FROM bets WHERE id = $1',
+      [bet_id]
+    );
+
+    res.send('馬券を削除しました');
+
+  } catch (error) {
+    console.error('Error deleting single bet:', error);
     res.status(500).send('エラーが発生しました: ' + error.message);
   }
 });

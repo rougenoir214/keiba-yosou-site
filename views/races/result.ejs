@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>レース結果 - <%= race.race_name %></title>
+<link rel="stylesheet" href="/css/betting-ticket-styles.css">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); background-attachment: fixed; min-height: 100vh; padding: 20px; }
@@ -201,60 +202,174 @@ const sortedPayouts = payouts.sort((a, b) => {
             </div>
         </div>
         
-        <table style="width: 100%; border-collapse: collapse;">
-            <thead>
-                <tr style="background: white;">
-                    <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">馬券種別</th>
-                    <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">馬番</th>
-                    <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">金額</th>
-                    <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">結果</th>
-                    <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">配当</th>
-                    <th style="padding: 8px; text-align: left; border-bottom: 1px solid #ddd;">収支</th>
-                </tr>
-            </thead>
-            <tbody>
-                <% 
-                // 馬券種別の順序
-                const betTypeOrder = { 'tansho': 1, 'fukusho': 2, 'umaren': 3, 'wide': 4, 'sanrenpuku': 5, 'sanrentan': 6 };
-                // ソート
-                const sortedUserBets = userBets[userName].sort((a, b) => {
-                    return (betTypeOrder[a.bet_type] || 99) - (betTypeOrder[b.bet_type] || 99);
-                });
-                %>
-                <% sortedUserBets.forEach(bet => { %>
-                    <% const isHit = bet.payout_amount && bet.payout_amount > 0; %>
-                    <% const profit = bet.payout_amount ? bet.payout_amount - bet.amount : -bet.amount; %>
-                    <tr style="background: <%= isHit ? '#e8f5e9' : bet.payout_amount !== null ? '#ffebee' : 'white' %>;">
-                        <td style="padding: 8px; border-bottom: 1px solid #eee;"><%= betTypeNames[bet.bet_type] %></td>
-                        <td style="padding: 8px; border-bottom: 1px solid #eee;"><strong><%= bet.horses.replace(/,/g, '-') %></strong></td>
-                        <td style="padding: 8px; border-bottom: 1px solid #eee;"><%= bet.amount.toLocaleString() %>円</td>
-                        <td style="padding: 8px; border-bottom: 1px solid #eee;">
-                            <% if (bet.payout_amount === null) { %>
-                            <span style="color: #888;">未確定</span>
-                            <% } else if (isHit) { %>
-                            <span style="color: #4caf50; font-weight: bold;">✅ 的中</span>
-                            <% } else { %>
-                            <span style="color: #f44336;">❌</span>
-                            <% } %>
-                        </td>
-                        <td style="padding: 8px; border-bottom: 1px solid #eee;">
-                            <% if (bet.payout_amount !== null) { %>
-                            <%= parseInt(bet.payout_amount).toLocaleString() %>円
-                            <% } else { %>
-                            -
-                            <% } %>
-                        </td>
-                        <td style="padding: 8px; border-bottom: 1px solid #eee; color: <%= profit >= 0 ? '#4caf50' : '#f44336' %>; font-weight: bold;">
-                            <% if (bet.payout_amount !== null) { %>
-                            <%= profit >= 0 ? '+' : '' %><%= profit.toLocaleString() %>円
-                            <% } else { %>
-                            -
-                            <% } %>
-                        </td>
-                    </tr>
-                <% }); %>
-            </tbody>
-        </table>
+        <!-- 馬券カード表示 -->
+        <div class="ticket-container">
+            <% 
+            // 馬券種別の順序
+            const betTypeOrder = { 'tansho': 1, 'fukusho': 2, 'umaren': 3, 'wide': 4, 'umatan': 5, 'sanrenpuku': 6, 'sanrentan': 7 };
+            // ソート
+            const sortedUserBets = userBets[userName].sort((a, b) => {
+                return (betTypeOrder[a.bet_type] || 99) - (betTypeOrder[b.bet_type] || 99);
+            });
+            
+            sortedUserBets.forEach(bet => { 
+                // 馬券種別名とアイコン
+                const betTypeIcons = {
+                    'tansho': '🏇', 'fukusho': '🎯', 'umaren': '🤝',
+                    'wide': '📊', 'umatan': '➡️', 
+                    'sanrenpuku': '💎', 'sanrentan': '🌟'
+                };
+                
+                const betTypeName = betTypeNames[bet.bet_type] || bet.bet_type;
+                const betTypeIcon = betTypeIcons[bet.bet_type] || '🎫';
+                
+                // 購入形式を取得（デフォルトは単式）
+                const betFormat = bet.bet_format || 'single';
+                
+                // 馬番を配列に変換
+                let horses = [];
+                let formationGroups = [];
+                
+                if (betFormat === 'formation' && bet.horses.includes('>')) {
+                    // フォーメーション: '6>3,5,7>2,3,4,5,7,8,9'
+                    formationGroups = bet.horses.split('>').map(group => 
+                        group.split(',').map(h => h.trim())
+                    );
+                } else {
+                    // 単式・ボックス: '2,4,12'
+                    horses = bet.horses.split(',').map(h => h.trim());
+                }
+                
+                // 単勝・複勝かどうか
+                const isSingle = bet.bet_type === 'tansho' || bet.bet_type === 'fukusho';
+                
+                // 馬名取得（単勝・複勝の単式の場合）
+                let horseName = '';
+                if (isSingle && betFormat === 'single' && horses_data) {
+                    const horseInfo = horses_data.find(h => h.umaban.toString() === horses[0]);
+                    horseName = horseInfo ? horseInfo.horse_name : '';
+                }
+                
+                // 的中判定
+                const isHit = bet.payout_amount && bet.payout_amount > 0;
+                const payout = bet.payout_amount || 0;
+                const profit = payout - bet.amount;
+                const hasResult = bet.payout_amount !== null && bet.payout_amount !== undefined;
+                const resultClass = hasResult ? (isHit ? 'ticket-result-hit' : 'ticket-result-miss') : 'ticket-result-pending';
+                
+                // 日付フォーマット
+                const raceDate = new Date(race.race_date).toLocaleDateString('ja-JP', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                }).replace(/\//g, '.');
+                
+                // レース番号を取得（race_idの最後の2桁）
+                const raceNumber = race.race_id.toString().slice(-2);
+            %>
+            
+            <div class="betting-ticket ticket-<%= bet.bet_type %>">
+                <!-- 左側：黒いエリア（レース番号 + QRコード） -->
+                <div class="ticket-left-section">
+                    <div class="ticket-race-number"><%= raceNumber %></div>
+                    <div class="ticket-qr-area">
+                        <div class="ticket-qr"></div>
+                        <div class="ticket-qr"></div>
+                    </div>
+                    <div class="ticket-race-label">レース</div>
+                </div>
+                
+                <!-- 中央：大きく縦書きで馬券種別 -->
+                <div class="ticket-center-type">
+                    <div class="ticket-type-large"><%= betTypeName %></div>
+                </div>
+                
+                <!-- 右側：馬番・馬名・金額 -->
+                <div class="ticket-right-content">
+                    <!-- 上部：日付とレース名 -->
+                    <div class="ticket-header">
+                        <div class="ticket-date-info"><%= raceDate %></div>
+                        <div class="ticket-race-info"><%= race.race_name %></div>
+                    </div>
+                    
+                    <!-- 馬番と馬名 -->
+                    <div class="ticket-horse-area">
+                        <% if (isSingle && betFormat === 'single') { %>
+                            <!-- 単勝・複勝の単式 -->
+                            <div class="ticket-umaban-box">
+                                <div class="ticket-umaban"><%= horses[0] %></div>
+                            </div>
+                            <div class="ticket-horse-details">
+                                <% if (horseName) { %>
+                                    <div class="ticket-horse-name"><%= horseName %></div>
+                                <% } %>
+                                <div class="ticket-amount"><%= bet.amount.toLocaleString() %>円</div>
+                            </div>
+                        <% } else if (betFormat === 'box') { %>
+                            <!-- ボックス買い -->
+                            <div>
+                                <div style="font-size: 14px; font-weight: bold; margin-bottom: 5px;">BOX</div>
+                                <div class="ticket-box-numbers">
+                                    <% horses.forEach((h, i) => { %>
+                                        <span class="box-number"><%= h %></span><%= i < horses.length - 1 ? ' ' : '' %>
+                                    <% }); %>
+                                </div>
+                                <div style="font-size: 11px; margin-top: 5px; color: #666;">
+                                    組合せ数: <%= horses.length %>頭 BOX
+                                </div>
+                                <div class="ticket-amount" style="margin-top: 5px;"><%= bet.amount.toLocaleString() %>円</div>
+                            </div>
+                        <% } else if (betFormat === 'formation') { %>
+                            <!-- フォーメーション買い -->
+                            <div>
+                                <div style="font-size: 12px; font-weight: bold; margin-bottom: 3px;">フォーメーション</div>
+                                <div class="ticket-formation">
+                                    <% formationGroups.forEach((group, idx) => { %>
+                                        <div class="formation-group">
+                                            <span class="formation-arrow">▶</span>
+                                            <div class="formation-horses">
+                                                <% group.forEach((h, i) => { %>
+                                                    <span class="formation-number"><%= h %></span><% if (i < group.length - 1) { %><span style="margin: 0 1px;">,</span><% } %>
+                                                <% }); %>
+                                            </div>
+                                        </div>
+                                    <% }); %>
+                                </div>
+                                <div style="font-size: 10px; margin-top: 3px; color: #666;">
+                                    組合せ数: 多数
+                                </div>
+                                <div class="ticket-amount" style="margin-top: 5px;"><%= bet.amount.toLocaleString() %>円</div>
+                            </div>
+                        <% } else { %>
+                            <!-- その他（単式の2連系・3連系） -->
+                            <div>
+                                <div class="ticket-numbers"><%= horses.join('-') %></div>
+                                <div class="ticket-amount"><%= bet.amount.toLocaleString() %>円</div>
+                            </div>
+                        <% } %>
+                    </div>
+                    
+                    <!-- 結果表示 -->
+                    <% if (hasResult) { %>
+                        <div class="ticket-result-area">
+                            <div class="ticket-payout">払戻: ¥<%= payout.toLocaleString() %></div>
+                            <div class="ticket-profit <%= profit >= 0 ? 'profit-plus' : 'profit-minus' %>">
+                                <%= profit >= 0 ? '+' : '' %>¥<%= profit.toLocaleString() %>
+                            </div>
+                        </div>
+                    <% } %>
+                </div>
+                
+                <!-- 的中スタンプ（左側） -->
+                <% if (hasResult && isHit) { %>
+                    <div class="ticket-stamp stamp-hit">的中</div>
+                <% } else if (hasResult && !isHit) { %>
+                    <div class="ticket-stamp stamp-miss">ハズレ</div>
+                <% } %>
+            </div>
+            
+            <% }); %>
+        </div>
     </div>
 <% }); %>
 <% } %>
