@@ -104,4 +104,92 @@ router.get('/logout', (req, res) => {
   res.redirect('/');
 });
 
+// ユーザー設定ページ
+router.get('/settings', (req, res) => {
+  if (!req.session.user) {
+    return res.redirect('/auth/login');
+  }
+  res.render('auth/settings', { 
+    user: req.session.user,
+    error: null,
+    success: null
+  });
+});
+
+// ユーザー設定更新
+router.post('/settings/update', async (req, res) => {
+  if (!req.session.user) {
+    return res.redirect('/auth/login');
+  }
+
+  const { username, display_name, password } = req.body;
+  const userId = req.session.user.id;
+
+  try {
+    // 現在のユーザー情報を取得してパスワード確認
+    const userResult = await pool.query(
+      'SELECT * FROM users WHERE id = $1',
+      [userId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.render('auth/settings', {
+        user: req.session.user,
+        error: 'ユーザーが見つかりません',
+        success: null
+      });
+    }
+
+    const user = userResult.rows[0];
+    const passwordMatch = await bcrypt.compare(password, user.password_hash);
+
+    if (!passwordMatch) {
+      return res.render('auth/settings', {
+        user: req.session.user,
+        error: 'パスワードが正しくありません',
+        success: null
+      });
+    }
+
+    // ユーザー名が変更されている場合、重複チェック
+    if (username !== user.username) {
+      const duplicateCheck = await pool.query(
+        'SELECT id FROM users WHERE username = $1 AND id != $2',
+        [username, userId]
+      );
+
+      if (duplicateCheck.rows.length > 0) {
+        return res.render('auth/settings', {
+          user: req.session.user,
+          error: 'このユーザー名は既に使用されています',
+          success: null
+        });
+      }
+    }
+
+    // ユーザー情報を更新
+    await pool.query(
+      'UPDATE users SET username = $1, display_name = $2 WHERE id = $3',
+      [username, display_name, userId]
+    );
+
+    // セッション情報も更新
+    req.session.user.username = username;
+    req.session.user.display_name = display_name;
+
+    res.render('auth/settings', {
+      user: req.session.user,
+      error: null,
+      success: '✅ ユーザー情報を更新しました'
+    });
+  } catch (error) {
+    console.error(error);
+    res.render('auth/settings', {
+      user: req.session.user,
+      error: '更新中にエラーが発生しました',
+      success: null
+    });
+  }
+});
+
 module.exports = router;

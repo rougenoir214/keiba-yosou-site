@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ユーザー設定 - 競馬予想サイト</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      padding: 40px;
+      width: 100%;
+      max-width: 500px;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 28px;
+      text-align: center;
+    }
+
+    .subtitle {
+      color: #666;
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+
+    .form-group {
+      margin-bottom: 25px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #555;
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .input-hint {
+      font-size: 12px;
+      color: #999;
+      font-weight: 400;
+      margin-left: 5px;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      padding: 12px 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 16px;
+      transition: all 0.3s;
+    }
+
+    input[type="text"]:focus,
+    input[type="password"]:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    input[readonly] {
+      background-color: #f5f5f5;
+      cursor: not-allowed;
+    }
+
+    .current-value {
+      font-size: 13px;
+      color: #666;
+      margin-top: 5px;
+      padding: 8px 12px;
+      background-color: #f8f9fa;
+      border-radius: 6px;
+    }
+
+    .error {
+      background-color: #fee;
+      color: #c33;
+      padding: 12px 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      border: 1px solid #fcc;
+      font-size: 14px;
+    }
+
+    .success {
+      background-color: #efe;
+      color: #3c3;
+      padding: 12px 15px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      border: 1px solid #cfc;
+      font-size: 14px;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      margin-top: 30px;
+    }
+
+    button {
+      flex: 1;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-secondary {
+      background: #e0e0e0;
+      color: #666;
+    }
+
+    .btn-secondary:hover {
+      background: #d0d0d0;
+    }
+
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 20px;
+      color: #667eea;
+      text-decoration: none;
+      font-size: 14px;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    .info-box {
+      background-color: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: 12px 15px;
+      margin-bottom: 20px;
+      border-radius: 6px;
+      font-size: 13px;
+      color: #1976d2;
+    }
+
+    @media (max-width: 600px) {
+      .container {
+        padding: 30px 20px;
+      }
+
+      h1 {
+        font-size: 24px;
+      }
+
+      .button-group {
+        flex-direction: column;
+      }
+
+      button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>⚙️ ユーザー設定</h1>
+    <p class="subtitle">アカウント情報を変更できます</p>
+
+    <% if (error) { %>
+      <div class="error"><%= error %></div>
+    <% } %>
+
+    <% if (success) { %>
+      <div class="success"><%= success %></div>
+    <% } %>
+
+    <div class="info-box">
+      💡 ユーザー名を変更すると、次回ログイン時から新しいユーザー名でログインすることになります。
+    </div>
+
+    <form method="POST" action="/auth/settings/update">
+      <div class="form-group">
+        <label>
+          ユーザー名（ログインID）
+          <span class="input-hint">※半角英数字</span>
+        </label>
+        <input 
+          type="text" 
+          name="username" 
+          value="<%= user.username %>" 
+          required
+          pattern="[a-zA-Z0-9]+"
+          title="半角英数字のみ使用できます"
+        >
+        <div class="current-value">現在: <%= user.username %></div>
+      </div>
+
+      <div class="form-group">
+        <label>
+          表示名
+          <span class="input-hint">※ランキングなどで表示される名前</span>
+        </label>
+        <input 
+          type="text" 
+          name="display_name" 
+          value="<%= user.display_name %>" 
+          required
+          maxlength="100"
+        >
+        <div class="current-value">現在: <%= user.display_name %></div>
+      </div>
+
+      <div class="form-group">
+        <label>
+          現在のパスワード
+          <span class="input-hint">※変更を確定するために必要</span>
+        </label>
+        <input 
+          type="password" 
+          name="password" 
+          required
+          placeholder="セキュリティのため入力してください"
+        >
+      </div>
+
+      <div class="button-group">
+        <button type="button" class="btn-secondary" onclick="window.location.href='/'">
+          キャンセル
+        </button>
+        <button type="submit" class="btn-primary">
+          変更を保存
+        </button>
+      </div>
+    </form>
+
+    <a href="/" class="back-link">← トップページに戻る</a>
+  </div>
+</body>
+</html>
