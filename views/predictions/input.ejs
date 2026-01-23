@@ -647,8 +647,17 @@ const canDeleteBets = isTestMode || (now < raceDateTime);
 <% if (bets.length === 0) { %>
 <p style="color: #888;">まだ馬券を購入していません</p>
 <% } else { %>
-<% const betTypeNames = { 'tansho': '単勝', 'fukusho': '複勝', 'umaren': '馬連', 'umatan': '馬単', 'wide': 'ワイド', 'sanrenpuku': '3連複', 'sanrentan': '3連単' }; let totalAmount = 0; %>
-<% bets.forEach(bet => { totalAmount += bet.amount; %>
+<% 
+const betTypeNames = { 'tansho': '単勝', 'fukusho': '複勝', 'umaren': '馬連', 'umatan': '馬単', 'wide': 'ワイド', 'sanrenpuku': '3連複', 'sanrentan': '3連単' };
+// 馬券種別の順序
+const betTypeOrder = { 'tansho': 1, 'fukusho': 2, 'umaren': 3, 'wide': 4, 'sanrenpuku': 5, 'sanrentan': 6 };
+// ソート
+const sortedBets = bets.sort((a, b) => {
+    return (betTypeOrder[a.bet_type] || 99) - (betTypeOrder[b.bet_type] || 99);
+});
+let totalAmount = 0;
+%>
+<% sortedBets.forEach(bet => { totalAmount += bet.amount; %>
 <li class="bet-item">
 <div class="bet-info"><strong><%= betTypeNames[bet.bet_type] %></strong>: <%= bet.horses.replace(/,/g, '-') %> - <%= bet.amount.toLocaleString() %>円</div>
 <% if (canDeleteBets) { %>

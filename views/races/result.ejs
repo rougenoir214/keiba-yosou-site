@@ -213,7 +213,15 @@ const sortedPayouts = payouts.sort((a, b) => {
                 </tr>
             </thead>
             <tbody>
-                <% userBets[userName].forEach(bet => { %>
+                <% 
+                // 馬券種別の順序
+                const betTypeOrder = { 'tansho': 1, 'fukusho': 2, 'umaren': 3, 'wide': 4, 'sanrenpuku': 5, 'sanrentan': 6 };
+                // ソート
+                const sortedUserBets = userBets[userName].sort((a, b) => {
+                    return (betTypeOrder[a.bet_type] || 99) - (betTypeOrder[b.bet_type] || 99);
+                });
+                %>
+                <% sortedUserBets.forEach(bet => { %>
                     <% const isHit = bet.payout_amount && bet.payout_amount > 0; %>
                     <% const profit = bet.payout_amount ? bet.payout_amount - bet.amount : -bet.amount; %>
                     <tr style="background: <%= isHit ? '#e8f5e9' : bet.payout_amount !== null ? '#ffebee' : 'white' %>;">
