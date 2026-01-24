@@ -43,6 +43,7 @@ async function subscribeToPushNotifications() {
     }
 
     // サーバーに購読情報を送信
+    console.log('購読情報をサーバーに送信中...', subscription);
     const response = await fetch('/api/push/subscribe', {
       method: 'POST',
       headers: {
@@ -51,13 +52,19 @@ async function subscribeToPushNotifications() {
       body: JSON.stringify(subscription)
     });
 
+    console.log('サーバーレスポンス:', response.status);
+    const data = await response.json();
+    console.log('レスポンスデータ:', data);
+
     if (response.ok) {
       pushNotificationEnabled = true;
       updatePushNotificationUI(true);
-      console.log('プッシュ通知の購読に成功しました');
+      console.log('✅ プッシュ通知の購読に成功しました');
+      alert('✅ プッシュ通知を有効にしました');
       return true;
     } else {
-      console.error('購読情報の保存に失敗しました');
+      console.error('❌ 購読情報の保存に失敗しました:', data);
+      alert('❌ 購読情報の保存に失敗しました: ' + (data.error || '不明なエラー'));
       return false;
     }
   } catch (error) {

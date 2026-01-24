@@ -37,7 +37,14 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
+  // ルートパスはキャッシュしない
   if (event.request.url.endsWith('/') && !event.request.url.includes('/races')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // POSTリクエストはキャッシュしない
+  if (event.request.method !== 'GET') {
     event.respondWith(fetch(event.request));
     return;
   }
@@ -45,6 +52,7 @@ self.addEventListener('fetch', event => {
   event.respondWith(
     fetch(event.request)
       .then(response => {
+        // GETリクエストのみキャッシュ
         const responseToCache = response.clone();
         caches.open(CACHE_NAME)
           .then(cache => {
