@@ -90,8 +90,11 @@ router.post('/unsubscribe', async (req, res) => {
 router.post('/test-send', async (req, res) => {
   try {
     if (!req.session.user || !req.session.user.id) {
+      console.error('テスト送信: 認証エラー');
       return res.status(401).json({ error: '認証が必要です' });
     }
+
+    console.log('テスト送信開始 - User ID:', req.session.user.id);
 
     // ユーザーの購読情報を取得
     const query = `
@@ -101,7 +104,15 @@ router.post('/test-send', async (req, res) => {
     `;
     const result = await db.query(query, [req.session.user.id]);
 
+    console.log('購読情報取得結果:', result.rows.length, '件');
+    if (result.rows.length > 0) {
+      result.rows.forEach((row, index) => {
+        console.log(`[${index + 1}] エンドポイント:`, row.endpoint.substring(0, 50) + '...');
+      });
+    }
+
     if (result.rows.length === 0) {
+      console.error('購読情報が見つかりません - User ID:', req.session.user.id);
       return res.status(404).json({ error: 'プッシュ通知の購読が見つかりません' });
     }
 
@@ -112,8 +123,10 @@ router.post('/test-send', async (req, res) => {
       url: '/races'
     });
 
+    console.log('通知ペイロード:', payload);
+
     // 各購読先に通知を送信
-    const sendPromises = result.rows.map(row => {
+    const sendPromises = result.rows.map(async (row, index) => {
       const pushSubscription = {
         endpoint: row.endpoint,
         keys: {
@@ -121,15 +134,30 @@ router.post('/test-send', async (req, res) => {
           auth: row.keys_auth
         }
       };
-      return webpush.sendNotification(pushSubscription, payload);
+      
+      try {
+        console.log(`[${index + 1}] 送信開始...`);
+        const sendResult = await webpush.sendNotification(pushSubscription, payload);
+        console.log(`[${index + 1}] ✅ 送信成功:`, sendResult.statusCode);
+        return sendResult;
+      } catch (error) {
+        console.error(`[${index + 1}] ❌ 送信失敗:`, error.message);
+        console.error('詳細:', error.body);
+        throw error;
+      }
     });
 
     await Promise.all(sendPromises);
 
+    console.log('✅ すべての通知送信完了');
     res.json({ success: true, message: `${result.rows.length}件の通知を送信しました` });
   } catch (error) {
-    console.error('テスト通知送信エラー:', error);
-    res.status(500).json({ error: 'サーバーエラーが発生しました' });
+    console.error('❌ テスト通知送信エラー:', error.message);
+    console.error('エラースタック:', error.stack);
+    res.status(500).json({ 
+      error: 'サーバーエラーが発生しました',
+      details: error.message 
+    });
   }
 });
 
