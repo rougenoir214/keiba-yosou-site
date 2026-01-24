@@ -122,14 +122,17 @@ router.get('/', async (req, res) => {
       ORDER BY r.race_date DESC, r.race_time DESC
     `);
     
-    // 各レースの状態を判定
+    // 各レースの状態を判定（日本時間で）
     const now = new Date();
+    const jstOffset = 9 * 60 * 60 * 1000;
+    const nowJST = new Date(now.getTime() + jstOffset);
+    
     const racesWithStatus = result.rows.map(race => {
       const raceDateTime = new Date(race.race_date);
       const [hours, minutes] = race.race_time.split(':');
-      raceDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      raceDateTime.setUTCHours(parseInt(hours), parseInt(minutes), 0, 0);
       
-      const diffMinutes = (raceDateTime - now) / (1000 * 60);
+      const diffMinutes = (raceDateTime - nowJST) / (1000 * 60);
       
       let status, statusClass, statusIcon;
       if (diffMinutes > 30) {
@@ -200,14 +203,17 @@ router.get('/archive', async (req, res) => {
     
     const result = await pool.query(query, params);
     
-    // 各レースの状態を判定
+    // 各レースの状態を判定（日本時間で）
     const now = new Date();
+    const jstOffset = 9 * 60 * 60 * 1000;
+    const nowJST = new Date(now.getTime() + jstOffset);
+    
     const racesWithStatus = result.rows.map(race => {
       const raceDateTime = new Date(race.race_date);
       const [hours, minutes] = race.race_time.split(':');
-      raceDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+      raceDateTime.setUTCHours(parseInt(hours), parseInt(minutes), 0, 0);
       
-      const diffMinutes = (raceDateTime - now) / (1000 * 60);
+      const diffMinutes = (raceDateTime - nowJST) / (1000 * 60);
       
       let status, statusClass, statusIcon;
       if (diffMinutes > 30) {

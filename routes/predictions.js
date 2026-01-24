@@ -183,24 +183,24 @@ router.post('/:race_id/marks', requireAuth, async (req, res) => {
     
     const race = raceInfo.rows[0];
     
-    // 現在時刻（日本時間）
+    // 現在時刻（日本時間 JST = UTC+9）
     const now = new Date();
+    const jstOffset = 9 * 60 * 60 * 1000; // 9時間をミリ秒で
+    const nowJST = new Date(now.getTime() + jstOffset);
     
-    // レース開始時刻を作成
+    // レース開始時刻を日本時間で作成
     const raceDateTime = new Date(race.race_date);
     const [hours, minutes] = race.race_time.split(':');
-    raceDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    raceDateTime.setUTCHours(parseInt(hours), parseInt(minutes), 0, 0);
     
     console.log('=== 印の時刻チェック ===');
-    console.log('現在時刻:', now);
-    console.log('発走時刻:', raceDateTime);
-    console.log('判定:', now < raceDateTime ? '購入可能' : '購入不可');
-    console.log('テストモード:', process.env.TEST_MODE === 'true' ? 'ON（時刻制限なし）' : 'OFF');
+    console.log('現在時刻（JST）:', nowJST.toISOString());
+    console.log('発走時刻（JST）:', raceDateTime.toISOString());
+    console.log('判定:', nowJST < raceDateTime ? '入力可能' : '入力不可');
     console.log('========================');
     
-    // テストモードでない場合のみ時刻チェック
-    const isTestMode = process.env.TEST_MODE === 'true';
-    if (!isTestMode && now >= raceDateTime) {
+    // 時刻チェック（テストモード廃止）
+    if (nowJST >= raceDateTime) {
       return res.status(400).json({ error: 'レース開始時刻を過ぎているため、予想を入力できません' });
     }
     
@@ -235,24 +235,24 @@ router.post('/:race_id/bets', requireAuth, async (req, res) => {
     
     const race = raceInfo.rows[0];
     
-    // 現在時刻
+    // 現在時刻（日本時間 JST = UTC+9）
     const now = new Date();
+    const jstOffset = 9 * 60 * 60 * 1000; // 9時間をミリ秒で
+    const nowJST = new Date(now.getTime() + jstOffset);
     
-    // レース開始時刻を作成
+    // レース開始時刻を日本時間で作成
     const raceDateTime = new Date(race.race_date);
     const [hours, minutes] = race.race_time.split(':');
-    raceDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+    raceDateTime.setUTCHours(parseInt(hours), parseInt(minutes), 0, 0);
     
     console.log('=== 馬券購入の時刻チェック ===');
-    console.log('現在時刻:', now);
-    console.log('発走時刻:', raceDateTime);
-    console.log('判定:', now < raceDateTime ? '購入可能' : '購入不可');
-    console.log('テストモード:', process.env.TEST_MODE === 'true' ? 'ON（時刻制限なし）' : 'OFF');
+    console.log('現在時刻（JST）:', nowJST.toISOString());
+    console.log('発走時刻（JST）:', raceDateTime.toISOString());
+    console.log('判定:', nowJST < raceDateTime ? '購入可能' : '購入不可');
     console.log('========================');
     
-    // テストモードでない場合のみ時刻チェック
-    const isTestMode = process.env.TEST_MODE === 'true';
-    if (!isTestMode && now >= raceDateTime) {
+    // 時刻チェック（テストモード廃止）
+    if (nowJST >= raceDateTime) {
       return res.status(400).json({ error: 'レース開始時刻を過ぎているため、馬券を購入できません' });
     }
     
