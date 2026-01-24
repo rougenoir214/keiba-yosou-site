@@ -114,4 +114,10 @@ app.listen(PORT, () => {
       }
     }, 30000);
   }
+  
+  // レース通知スケジューラーを起動（本番環境のみ）
+  if (process.env.NODE_ENV === 'production') {
+    console.log('レース通知スケジューラーを起動します...');
+    require('./race-notification-scheduler');
+  }
 });
