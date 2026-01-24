@@ -124,12 +124,22 @@ function updatePushNotificationUI(enabled) {
 // プッシュ通知のサポート確認と初期化
 async function initPushNotifications() {
   console.log('🔔 プッシュ通知の初期化を開始...');
+  console.log('User Agent:', navigator.userAgent);
+  console.log('Service Worker サポート:', 'serviceWorker' in navigator);
+  console.log('Push API サポート:', 'PushManager' in window);
+  console.log('Notification API サポート:', 'Notification' in window);
   
   // プッシュ通知のサポート確認
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
     console.log('❌ このブラウザはプッシュ通知をサポートしていません');
     const statusText = document.getElementById('push-status');
-    if (statusText) statusText.textContent = 'サポート外';
+    if (statusText) {
+      statusText.textContent = 'サポート外';
+      statusText.style.color = '#f44336';
+    }
+    // ボタンを非表示
+    const enableBtn = document.getElementById('enable-push-btn');
+    if (enableBtn) enableBtn.style.display = 'none';
     return;
   }
 
@@ -137,12 +147,15 @@ async function initPushNotifications() {
   const vapidKeyElement = document.getElementById('vapid-public-key');
   const vapidKey = vapidKeyElement?.value;
   console.log('VAPID公開キー要素:', vapidKeyElement ? '存在する' : '存在しない');
-  console.log('VAPID公開キーの長さ:', vapidKey ? vapidKey.length : 0);
+  console.log('VAPID公開キーの値:', vapidKey ? `${vapidKey.substring(0, 20)}... (長さ: ${vapidKey.length})` : '空');
   
   if (!vapidKey || vapidKey.length === 0) {
     console.error('❌ VAPID公開キーが設定されていません');
     const statusText = document.getElementById('push-status');
-    if (statusText) statusText.textContent = '設定エラー';
+    if (statusText) {
+      statusText.textContent = '設定エラー';
+      statusText.style.color = '#f44336';
+    }
     return;
   }
 
@@ -150,18 +163,25 @@ async function initPushNotifications() {
     console.log('⏳ Service Workerの準備を待機中...');
     // 現在の購読状態を確認
     const registration = await navigator.serviceWorker.ready;
-    console.log('✅ Service Worker準備完了');
+    console.log('✅ Service Worker準備完了:', registration.active ? 'アクティブ' : '待機中');
     
     const subscription = await registration.pushManager.getSubscription();
     console.log('購読状態:', subscription ? '購読済み' : '未購読');
+    if (subscription) {
+      console.log('購読エンドポイント:', subscription.endpoint.substring(0, 50) + '...');
+    }
     
     pushNotificationEnabled = !!subscription;
     updatePushNotificationUI(pushNotificationEnabled);
     console.log('✅ プッシュ通知の初期化完了');
   } catch (error) {
     console.error('❌ プッシュ通知の初期化エラー:', error);
+    console.error('エラー詳細:', error.message, error.stack);
     const statusText = document.getElementById('push-status');
-    if (statusText) statusText.textContent = 'エラー';
+    if (statusText) {
+      statusText.textContent = 'エラー';
+      statusText.style.color = '#f44336';
+    }
   }
 }
 
