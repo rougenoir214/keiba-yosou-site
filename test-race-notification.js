@@ -1,16 +1,16 @@
-// レース通知スケジューラーのテスト用スクリプト
+// レース通知スケジューラーのテスト用スクリプト（1日1回督促通知版）
 // 使い方: node test-race-notification.js
 
 require('dotenv').config();
 const db = require('./db/connection');
 
 async function testNotificationLogic() {
-  console.log('=== レース通知ロジックのテスト ===\n');
+  console.log('=== 1日1回督促通知ロジックのテスト ===\n');
 
   try {
-    // 1. 現在時刻から30分後（±2分）のレースを検索
-    console.log('1️⃣ 30分後のレースを検索中...');
-    const racesQuery = `
+    // 1. 本日の最初のレースを検索
+    console.log('1️⃣ 本日の最初のレースを検索中...');
+    const firstRaceQuery = `
       SELECT 
         r.id as race_id,
         r.race_name,
@@ -19,39 +19,36 @@ async function testNotificationLogic() {
         EXTRACT(EPOCH FROM (CAST(r.race_time AS TIME) - CURRENT_TIME::TIME))/60 as minutes_until
       FROM races r
       WHERE r.race_date = CURRENT_DATE
-        AND CAST(r.race_time AS TIME) BETWEEN 
-          (CURRENT_TIME::TIME + INTERVAL '28 minutes') 
-          AND (CURRENT_TIME::TIME + INTERVAL '32 minutes')
-      ORDER BY r.race_time
+      ORDER BY r.race_time ASC
+      LIMIT 1
     `;
     
-    const racesResult = await db.query(racesQuery);
+    const firstRaceResult = await db.query(firstRaceQuery);
     
-    if (racesResult.rows.length === 0) {
-      console.log('   ❌ 30分後のレースがありません');
-      console.log('   💡 テスト用に今日のレース一覧を表示します:\n');
+    if (firstRaceResult.rows.length === 0) {
+      console.log('   ❌ 本日のレースがありません');
+      console.log('   💡 テスト用に今後のレース一覧を表示します:\n');
       
-      const todayRacesQuery = `
+      const upcomingRacesQuery = `
         SELECT 
           r.id,
           r.race_name,
-          r.race_time,
-          EXTRACT(EPOCH FROM (CAST(r.race_time AS TIME) - CURRENT_TIME::TIME))/60 as minutes_until
+          r.race_date,
+          r.race_time
         FROM races r
-        WHERE r.race_date = CURRENT_DATE
-        ORDER BY r.race_time
+        WHERE r.race_date >= CURRENT_DATE
+        ORDER BY r.race_date, r.race_time
         LIMIT 10
       `;
       
-      const todayResult = await db.query(todayRacesQuery);
+      const upcomingResult = await db.query(upcomingRacesQuery);
       
-      if (todayResult.rows.length === 0) {
-        console.log('   ❌ 今日のレースがありません');
+      if (upcomingResult.rows.length === 0) {
+        console.log('   ❌ 今後のレースがありません');
       } else {
-        console.log('   📋 今日のレース一覧:');
-        todayResult.rows.forEach(race => {
-          const minutesUntil = Math.round(race.minutes_until);
-          console.log(`      ${race.id}: ${race.race_name} - ${race.race_time} (${minutesUntil > 0 ? `${minutesUntil}分後` : `${Math.abs(minutesUntil)}分前`})`);
+        console.log('   📋 今後のレース一覧:');
+        upcomingResult.rows.forEach(race => {
+          console.log(`      ${race.race_date} ${race.race_time}: ${race.race_name} (ID: ${race.id})`);
         });
       }
       
@@ -59,56 +56,78 @@ async function testNotificationLogic() {
       return;
     }
 
-    console.log(`   ✅ ${racesResult.rows.length}件のレースが見つかりました\n`);
+    const firstRace = firstRaceResult.rows[0];
+    const minutesUntil = Math.round(firstRace.minutes_until);
 
-    // 2. 各レースについて通知対象ユーザーを確認
-    for (const race of racesResult.rows) {
-      console.log(`2️⃣ レース: ${race.race_name} (ID: ${race.race_id})`);
-      console.log(`   発走時刻: ${race.race_time} (${Math.round(race.minutes_until)}分後)`);
+    console.log(`   ✅ 最初のレース: ${firstRace.race_name}`);
+    console.log(`   📅 発走日時: ${firstRace.race_date} ${firstRace.race_time}`);
+    console.log(`   ⏱️  発走まで: ${minutesUntil}分`);
+    
+    if (minutesUntil < 28 || minutesUntil > 32) {
+      console.log(`   ℹ️  まだ通知タイミングではありません（30分前: 28〜32分の範囲外）`);
+    } else {
+      console.log(`   🎯 30分前です！通知を送信するタイミングです`);
+    }
 
-      // 予想を投稿したユーザーを取得
-      const usersQuery = `
-        SELECT DISTINCT 
-          p.user_id,
-          u.display_name,
-          u.username
+    console.log('\n2️⃣ プッシュ通知登録者を確認中...');
+
+    // プッシュ通知が有効なユーザーを全員取得
+    const allUsersQuery = `
+      SELECT DISTINCT ps.user_id, u.display_name, u.username
+      FROM push_subscriptions ps
+      JOIN users u ON ps.user_id = u.id
+    `;
+    
+    const allUsersResult = await db.query(allUsersQuery);
+    
+    if (allUsersResult.rows.length === 0) {
+      console.log('   ❌ プッシュ通知を登録しているユーザーがいません\n');
+      process.exit(0);
+      return;
+    }
+
+    console.log(`   ✅ プッシュ通知登録者: ${allUsersResult.rows.length}名\n`);
+
+    // 3. 各ユーザーの予想状況と通知状況を確認
+    console.log('3️⃣ 各ユーザーの状態を確認中...\n');
+
+    for (const user of allUsersResult.rows) {
+      console.log(`👤 ${user.display_name} (${user.username})`);
+
+      // 今日既に予想しているかチェック
+      const predictionCheckQuery = `
+        SELECT COUNT(*) as prediction_count
         FROM predictions p
-        JOIN users u ON p.user_id = u.id
-        WHERE p.race_id = $1
+        JOIN races r ON p.race_id = r.race_id
+        WHERE p.user_id = $1 AND r.race_date = CURRENT_DATE
       `;
       
-      const usersResult = await db.query(usersQuery, [race.race_id]);
+      const predictionResult = await db.query(predictionCheckQuery, [user.user_id]);
+      const predictionCount = predictionResult.rows[0].prediction_count;
+      const hasPrediction = predictionCount > 0;
+
+      // 今日既に通知を送信したかチェック
+      const notificationCheckQuery = `
+        SELECT COUNT(*) as notification_count
+        FROM race_notifications
+        WHERE user_id = $1 
+          AND notification_type = 'daily_reminder'
+          AND DATE(sent_at) = CURRENT_DATE
+      `;
       
-      if (usersResult.rows.length === 0) {
-        console.log('   ℹ️  このレースに予想したユーザーはいません\n');
-        continue;
-      }
+      const notificationResult = await db.query(notificationCheckQuery, [user.user_id]);
+      const alreadyNotified = notificationResult.rows[0].notification_count > 0;
 
-      console.log(`   👥 予想したユーザー: ${usersResult.rows.length}名`);
-
-      // 各ユーザーのプッシュ購読状況を確認
-      for (const user of usersResult.rows) {
-        const subsQuery = `
-          SELECT COUNT(*) as subscription_count
-          FROM push_subscriptions
-          WHERE user_id = $1
-        `;
-        
-        const subsResult = await db.query(subsQuery, [user.user_id]);
-        const hasSubscription = subsResult.rows[0].subscription_count > 0;
-
-        // 既に通知送信済みかチェック
-        const notifiedQuery = `
-          SELECT COUNT(*) as notified_count
-          FROM race_notifications
-          WHERE race_id = $1 AND user_id = $2 AND notification_type = '30min_before'
-        `;
-        
-        const notifiedResult = await db.query(notifiedQuery, [race.race_id, user.user_id]);
-        const alreadyNotified = notifiedResult.rows[0].notified_count > 0;
-
-        const status = !hasSubscription ? '🔕 未登録' : alreadyNotified ? '✅ 送信済み' : '📬 送信対象';
-        console.log(`      ${status} - ${user.display_name} (${user.username})`);
+      console.log(`   📊 今日の予想: ${hasPrediction ? `${predictionCount}件` : 'なし'}`);
+      console.log(`   📬 本日の通知: ${alreadyNotified ? '送信済み' : '未送信'}`);
+      
+      // 通知対象かどうか
+      if (!hasPrediction && !alreadyNotified) {
+        console.log(`   🎯 通知対象: YES（予想なし & 未通知）`);
+      } else if (hasPrediction) {
+        console.log(`   ⏭️  通知対象: NO（既に予想済み）`);
+      } else if (alreadyNotified) {
+        console.log(`   ⏭️  通知対象: NO（既に通知送信済み）`);
       }
       
       console.log('');
