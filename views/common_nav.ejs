@@ -54,10 +54,11 @@
 
 <div class="nav-links">
     <a href="/races" class="<%= currentPage === 'races' ? 'active' : '' %>">📋 レース一覧</a>
-    <a href="/races/archive" class="<%= currentPage === 'archive' ? 'active' : '' %>">📚 過去レース</a>
     <a href="/ranking" class="<%= currentPage === 'ranking' ? 'active' : '' %>">🏆 ランキング</a>
+    <a href="/races/archive" class="<%= currentPage === 'archive' ? 'active' : '' %>">📚 過去レース</a>
     <% if (user && user.is_admin) { %>
         <a href="/admin/import" class="<%= currentPage === 'admin' ? 'active' : '' %>">⚙️ データ管理</a>
+        <a href="/admin/users" class="<%= currentPage === 'admin' ? 'active' : '' %>">👥 ユーザー管理</a>
     <% } %>
     <a href="/auth/settings" class="<%= currentPage === 'settings' ? 'active' : '' %>">👤 設定</a>
     <a href="/auth/logout">🚪 ログアウト</a>
