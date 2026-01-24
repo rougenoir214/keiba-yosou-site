@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ユーザー管理 - 競馬予想サイト</title>
+  <%- include('../pwa_head') %>
   <style>
     * {
       margin: 0;
@@ -153,10 +154,9 @@
 </head>
 <body>
   <div class="container">
-    <a href="/admin/import" class="back-link">← 管理者トップに戻る</a>
-
     <h1>👥 ユーザー管理</h1>
     <p class="subtitle">登録ユーザーの一覧とパスワード初期化</p>
+    <%- include('../common_nav', { currentPage: 'admin', user: user }) %>
 
     <div class="user-count">
       📊 登録ユーザー数: <%= users.length %> 人

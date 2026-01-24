@@ -203,6 +203,7 @@
                 <span>🕒 <%= race.race_time %></span>
                 <span>📍 <%= race.venue %></span>
             </div>
+            <%- include('../common_nav', { currentPage: 'races', user: user }) %>
             <a href="/predictions/<%= race.race_id %>" class="btn" style="margin-top: 15px; display: inline-block; padding: 10px 20px; background: #4caf50; color: white; text-decoration: none; border-radius: 5px;">📝 予想を入力</a>
             <a href="/races/<%= race.race_id %>/result" class="btn" style="margin-top: 15px; display: inline-block; padding: 10px 20px; background: #ff9800; color: white; text-decoration: none; border-radius: 5px;">📊 結果を見る</a>
             <% if (user && user.is_admin) { %>

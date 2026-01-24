@@ -2,7 +2,7 @@
   "name": "競馬予想サイト",
   "short_name": "競馬予想",
   "description": "みんなで競馬予想を楽しもう",
-  "start_url": "/",
+  "start_url": "/races",
   "display": "standalone",
   "background_color": "#667eea",
   "theme_color": "#667eea",

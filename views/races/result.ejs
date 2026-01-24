@@ -57,6 +57,7 @@ tr.no-rank td { color: #999; }
 <div class="header">
 <h1>🏁 <%= race.race_name %> - レース結果</h1>
 <p>📅 <%= new Date(race.race_date).toLocaleDateString('ja-JP') %> | 📍 <%= race.venue %></p>
+<%- include('../common_nav', { currentPage: 'races', user: user }) %>
 <div style="margin-top: 15px;">
 <% if (user && user.is_admin) { %>
 <button onclick="fetchResultFromNetkeiba()" class="btn" style="background: linear-gradient(135deg, #ff9800 0%, #ff5722 100%); box-shadow: 0 4px 15px rgba(255, 152, 0, 0.4);">

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CSVインポート - 競馬予想共有サイト</title>
+    <%- include('pwa_head') %>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -83,15 +84,7 @@
 <body>
     <div class="container">
         <h1>📊 レースデータインポート</h1>
-        
-        <div style="margin-bottom: 20px;">
-            <a href="/admin/users" style="display: inline-block; padding: 10px 20px; background: #2196f3; color: white; text-decoration: none; border-radius: 5px; margin-right: 10px;">
-                👥 ユーザー管理
-            </a>
-            <a href="/" style="display: inline-block; padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 5px;">
-                🏠 トップページ
-            </a>
-        </div>
+        <%- include('common_nav', { currentPage: 'admin', user: user }) %>
         
         <div class="info">
             <h3>CSVフォーマット</h3>

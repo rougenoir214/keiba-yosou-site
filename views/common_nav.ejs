@@ -1,0 +1,64 @@
+<style>
+.nav-links {
+    margin-top: 20px;
+    display: flex;
+    gap: 5px;
+    border-bottom: 2px solid rgba(102, 126, 234, 0.2);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+.nav-links::-webkit-scrollbar {
+    height: 4px;
+}
+.nav-links::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.05);
+    border-radius: 2px;
+}
+.nav-links::-webkit-scrollbar-thumb {
+    background: rgba(102, 126, 234, 0.3);
+    border-radius: 2px;
+}
+.nav-links a {
+    display: inline-flex;
+    align-items: center;
+    padding: 12px 20px;
+    color: #666;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.95rem;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s;
+    white-space: nowrap;
+    position: relative;
+}
+.nav-links a:hover {
+    color: #667eea;
+    background: rgba(102, 126, 234, 0.05);
+}
+.nav-links a.active {
+    color: #667eea;
+    border-bottom-color: #667eea;
+    font-weight: 600;
+}
+.nav-links a.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    border-radius: 3px 3px 0 0;
+}
+</style>
+
+<div class="nav-links">
+    <a href="/races" class="<%= currentPage === 'races' ? 'active' : '' %>">📋 レース一覧</a>
+    <a href="/races/archive" class="<%= currentPage === 'archive' ? 'active' : '' %>">📚 過去レース</a>
+    <a href="/ranking" class="<%= currentPage === 'ranking' ? 'active' : '' %>">🏆 ランキング</a>
+    <% if (user && user.is_admin) { %>
+        <a href="/admin/import" class="<%= currentPage === 'admin' ? 'active' : '' %>">⚙️ データ管理</a>
+    <% } %>
+    <a href="/auth/settings" class="<%= currentPage === 'settings' ? 'active' : '' %>">👤 設定</a>
+    <a href="/auth/logout">🚪 ログアウト</a>
+</div>

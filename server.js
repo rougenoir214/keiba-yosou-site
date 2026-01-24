@@ -54,6 +54,10 @@ app.use('/predictions', predictionsRoutes);
 app.use('/ranking', rankingRoutes);
 
 app.get('/', (req, res) => {
+  // ログイン済みなら/racesにリダイレクト
+  if (req.session.user) {
+    return res.redirect('/races');
+  }
   res.render('index', { user: req.session.user });
 });
 

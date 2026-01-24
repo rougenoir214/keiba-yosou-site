@@ -53,8 +53,8 @@ function generateCombinationsForPayout(horses, betType, betFormat) {
     // フォーメーション買い: '>'で区切られた形式
     const groups = horses.split('>').map(g => g.split(',').map(h => h.trim()));
     
-    if (betType === 'umaren' && groups.length === 2) {
-      // 馬連フォーメーション（流し）: 軸馬と相手馬
+    if ((betType === 'umaren' || betType === 'wide') && groups.length === 2) {
+      // 馬連・ワイド フォーメーション（流し）: 軸馬と相手馬
       for (const axis of groups[0]) {
         for (const partner of groups[1]) {
           if (axis !== partner) {

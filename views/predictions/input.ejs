@@ -107,6 +107,7 @@ td { padding: 12px; border-bottom: 1px solid #eee; }
 <h1>📝 予想入力 - <%= race.race_name %></h1>
 <p>ユーザー: <%= user.display_name %></p>
 <p style="color: #f44336; font-weight: bold;">⏰ レース開始時刻: <%= race.race_date %> <%= race.race_time %> （開始時刻以降は購入不可）</p>
+<%- include('../common_nav', { currentPage: 'races', user: user }) %>
 <a href="/races/<%= race.race_id %>" class="back-link">← 出馬表に戻る</a>
 </div>
 <div class="section">
@@ -1214,8 +1215,8 @@ document.getElementById('bet-form').addEventListener('submit', async (e) => {
     
     // フォーメーション買いの場合、パラメータを追加
     if (buyMethod === 'formation') {
-        if (betType === 'umaren') {
-            // 馬連フォーメーション: 軸馬と相手馬
+        if (betType === 'umaren' || betType === 'wide') {
+            // 馬連・ワイド フォーメーション: 軸馬と相手馬
             const axisVals = Array.from(document.querySelectorAll('input[name="umaren_form_axis"]:checked')).map(cb => cb.value);
             const partnerVals = Array.from(document.querySelectorAll('input[name="umaren_form_partner"]:checked')).map(cb => cb.value);
             data.axis_horses = axisVals.join(',');

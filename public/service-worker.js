@@ -1,13 +1,12 @@
-const CACHE_NAME = 'keiba-yosou-v1';
+const CACHE_NAME = 'keiba-yosou-v3';
 const urlsToCache = [
-  '/',
+  '/races',
   '/css/style.css',
   '/css/betting-ticket-styles.css',
   '/icons/icon-192.png',
   '/icons/icon-512.png'
 ];
 
-// インストール時にキャッシュを作成
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -17,9 +16,9 @@ self.addEventListener('install', event => {
       })
       .catch(err => console.log('キャッシュエラー:', err))
   );
+  self.skipWaiting();
 });
 
-// 古いキャッシュを削除
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
@@ -31,16 +30,21 @@ self.addEventListener('activate', event => {
           }
         })
       );
+    }).then(() => {
+      return self.clients.claim();
     })
   );
 });
 
-// ネットワーク優先、失敗時はキャッシュから返す戦略
 self.addEventListener('fetch', event => {
+  if (event.request.url.endsWith('/') && !event.request.url.includes('/races')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   event.respondWith(
     fetch(event.request)
       .then(response => {
-        // レスポンスをクローンしてキャッシュに保存
         const responseToCache = response.clone();
         caches.open(CACHE_NAME)
           .then(cache => {
@@ -49,7 +53,6 @@ self.addEventListener('fetch', event => {
         return response;
       })
       .catch(() => {
-        // ネットワークエラー時はキャッシュから返す
         return caches.match(event.request);
       })
   );
