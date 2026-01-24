@@ -38,21 +38,55 @@
             background-clip: text;
         }
         .nav-links {
-            margin-top: 15px;
+            margin-top: 20px;
+            display: flex;
+            gap: 5px;
+            border-bottom: 2px solid rgba(102, 126, 234, 0.2);
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .nav-links::-webkit-scrollbar {
+            height: 4px;
+        }
+        .nav-links::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.05);
+            border-radius: 2px;
+        }
+        .nav-links::-webkit-scrollbar-thumb {
+            background: rgba(102, 126, 234, 0.3);
+            border-radius: 2px;
         }
         .nav-links a {
-            display: inline-block;
-            margin-right: 15px;
-            color: #667eea;
+            display: inline-flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: #666;
             text-decoration: none;
             font-weight: 500;
+            font-size: 0.95rem;
+            border-bottom: 3px solid transparent;
             transition: all 0.3s;
-            padding: 5px 10px;
-            border-radius: 5px;
+            white-space: nowrap;
+            position: relative;
         }
         .nav-links a:hover {
-            background: rgba(102, 126, 234, 0.1);
-            transform: translateX(5px);
+            color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+        }
+        .nav-links a.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            font-weight: 600;
+        }
+        .nav-links a.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 3px 3px 0 0;
         }
         .race-card {
             background: white !important;
@@ -180,12 +214,14 @@
         <div class="header">
             <h1>🏇 レース一覧（直近2週間）</h1>
             <div class="nav-links">
-                <a href="/">← トップページ</a>
-                <a href="/races/archive">過去レース</a>
-                <a href="/ranking">ランキング</a>
+                <a href="/races" class="active">📋 レース一覧</a>
+                <a href="/races/archive">📚 過去レース</a>
+                <a href="/ranking">🏆 ランキング</a>
                 <% if (user && user.is_admin) { %>
-                    <a href="/admin/import">データインポート</a>
+                    <a href="/admin/import">⚙️ データ管理</a>
                 <% } %>
+                <a href="/auth/settings">👤 設定</a>
+                <a href="/auth/logout">🚪 ログアウト</a>
             </div>
         </div>
 

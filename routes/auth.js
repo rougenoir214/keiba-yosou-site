@@ -42,7 +42,7 @@ router.post('/register', async (req, res) => {
       is_admin: result.rows[0].is_admin || false
     };
     
-    res.redirect('/');
+    res.redirect('/races');
   } catch (error) {
     console.error(error);
     res.render('auth/register', { 
@@ -89,7 +89,7 @@ router.post('/login', async (req, res) => {
       is_admin: user.is_admin || false
     };
     
-    res.redirect('/');
+    res.redirect('/races');
   } catch (error) {
     console.error(error);
     res.render('auth/login', { 
