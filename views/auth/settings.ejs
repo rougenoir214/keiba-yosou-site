@@ -258,6 +258,46 @@
 
       <hr style="margin: 30px 0; border: none; border-top: 1px solid #e0e0e0;">
 
+      <h3 style="margin-bottom: 15px; color: #333; font-size: 18px;">🔔 プッシュ通知設定</h3>
+      <p style="margin-bottom: 20px; font-size: 13px; color: #666;">レース発走30分前に通知を受け取ることができます</p>
+      
+      <!-- VAPIDキーを隠しフィールドで渡す -->
+      <input type="hidden" id="vapid-public-key" value="<%= process.env.VAPID_PUBLIC_KEY || '' %>">
+      
+      <div class="form-group">
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 15px; background-color: #f8f9fa; border-radius: 10px;">
+          <div>
+            <strong style="color: #333;">プッシュ通知</strong>
+            <p style="font-size: 12px; color: #666; margin-top: 5px;">
+              ステータス: <span id="push-status" style="font-weight: 600;">確認中...</span>
+            </p>
+          </div>
+          <div>
+            <button type="button" id="enable-push-btn" class="btn-primary" 
+                    onclick="requestPushNotificationPermission()" 
+                    style="padding: 10px 20px; font-size: 14px; display: none;">
+              有効にする
+            </button>
+            <button type="button" id="disable-push-btn" class="btn-secondary" 
+                    onclick="unsubscribeFromPushNotifications()" 
+                    style="padding: 10px 20px; font-size: 14px; display: none;">
+              無効にする
+            </button>
+            <button type="button" id="test-push-btn" class="btn-secondary" 
+                    onclick="sendTestNotification()" 
+                    style="padding: 10px 20px; font-size: 14px; margin-left: 5px; display: none;">
+              テスト送信
+            </button>
+          </div>
+        </div>
+        <p style="font-size: 11px; color: #999; margin-top: 10px;">
+          ⚠️ プッシュ通知を受け取るには、ブラウザで通知を許可する必要があります。<br>
+          通知を拒否している場合は、ブラウザの設定から許可してください。
+        </p>
+      </div>
+
+      <hr style="margin: 30px 0; border: none; border-top: 1px solid #e0e0e0;">
+
       <h3 style="margin-bottom: 15px; color: #333; font-size: 18px;">🔐 パスワード変更（任意）</h3>
       <p style="margin-bottom: 20px; font-size: 13px; color: #666;">パスワードを変更する場合のみ入力してください</p>
 
@@ -301,6 +341,7 @@
     <a href="/" class="back-link">← トップページに戻る</a>
   </div>
 
+  <script src="/push-notifications.js"></script>
   <script>
     // フォーム送信時のバリデーション
     document.querySelector('form').addEventListener('submit', function(e) {
@@ -322,6 +363,53 @@
         }
       }
     });
+
+    // プッシュ通知の状態を更新（上書き）
+    async function updatePushNotificationUI(enabled) {
+      const enableBtn = document.getElementById('enable-push-btn');
+      const disableBtn = document.getElementById('disable-push-btn');
+      const testBtn = document.getElementById('test-push-btn');
+      const statusText = document.getElementById('push-status');
+      
+      if (enableBtn && disableBtn && testBtn) {
+        if (enabled) {
+          enableBtn.style.display = 'none';
+          disableBtn.style.display = 'inline-block';
+          testBtn.style.display = 'inline-block';
+          if (statusText) statusText.textContent = '有効';
+          if (statusText) statusText.style.color = '#4caf50';
+        } else {
+          enableBtn.style.display = 'inline-block';
+          disableBtn.style.display = 'none';
+          testBtn.style.display = 'none';
+          if (statusText) statusText.textContent = '無効';
+          if (statusText) statusText.style.color = '#999';
+        }
+      }
+    }
+
+    // テスト通知を送信
+    async function sendTestNotification() {
+      try {
+        const response = await fetch('/api/push/test-send', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+
+        const data = await response.json();
+        
+        if (data.success) {
+          alert('✅ テスト通知を送信しました。数秒後に通知が届きます。');
+        } else {
+          alert('❌ テスト通知の送信に失敗しました: ' + (data.error || '不明なエラー'));
+        }
+      } catch (error) {
+        console.error('テスト通知エラー:', error);
+        alert('❌ テスト通知の送信に失敗しました');
+      }
+    }
   </script>
 </body>
 </html>

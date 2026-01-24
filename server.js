@@ -47,11 +47,13 @@ const racesRoutes = require('./routes/races');
 const authRoutes = require('./routes/auth');
 const predictionsRoutes = require('./routes/predictions');
 const rankingRoutes = require('./routes/ranking');
+const pushRoutes = require('./routes/push');
 app.use('/admin', adminRoutes);
 app.use('/races', racesRoutes);
 app.use('/auth', authRoutes);
 app.use('/predictions', predictionsRoutes);
 app.use('/ranking', rankingRoutes);
+app.use('/api/push', pushRoutes);
 
 app.get('/', (req, res) => {
   // ログイン済みなら/racesにリダイレクト

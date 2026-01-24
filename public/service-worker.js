@@ -57,3 +57,67 @@ self.addEventListener('fetch', event => {
       })
   );
 });
+
+// プッシュ通知を受信したときの処理
+self.addEventListener('push', event => {
+  console.log('プッシュ通知を受信しました:', event);
+  
+  let data = {
+    title: '競馬予想サイト',
+    body: '新しい通知があります',
+    icon: '/icons/icon-192.png',
+    badge: '/icons/icon-192.png',
+    tag: 'race-notification',
+    requireInteraction: false
+  };
+
+  if (event.data) {
+    try {
+      const payload = event.data.json();
+      data = { ...data, ...payload };
+    } catch (e) {
+      console.error('プッシュデータのパースエラー:', e);
+      data.body = event.data.text();
+    }
+  }
+
+  const notificationPromise = self.registration.showNotification(data.title, {
+    body: data.body,
+    icon: data.icon,
+    badge: data.badge,
+    tag: data.tag,
+    requireInteraction: data.requireInteraction,
+    data: {
+      url: data.url || '/races'
+    }
+  });
+
+  event.waitUntil(notificationPromise);
+});
+
+// 通知をクリックしたときの処理
+self.addEventListener('notificationclick', event => {
+  console.log('通知がクリックされました:', event);
+  event.notification.close();
+
+  const urlToOpen = event.notification.data?.url || '/races';
+
+  const promiseChain = clients.matchAll({
+    type: 'window',
+    includeUncontrolled: true
+  })
+  .then(windowClients => {
+    // 既に開いているウィンドウがあればそれにフォーカス
+    for (let client of windowClients) {
+      if (client.url.includes(urlToOpen) && 'focus' in client) {
+        return client.focus();
+      }
+    }
+    // なければ新しいウィンドウを開く
+    if (clients.openWindow) {
+      return clients.openWindow(urlToOpen);
+    }
+  });
+
+  event.waitUntil(promiseChain);
+});
