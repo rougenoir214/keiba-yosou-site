@@ -86,21 +86,10 @@ async function sendDailyReminderNotifications(firstRace) {
 
     console.log(`   👥 プッシュ通知登録者: ${allUsersResult.rows.length}名`);
 
-    // まだ今日予想していないユーザーをフィルタリング
+    // 今日まだ通知を送信していないユーザーをフィルタリング（全ユーザーが対象）
     const usersToNotify = [];
     
     for (const user of allUsersResult.rows) {
-      // 今日既に予想しているかチェック
-      const predictionCheckQuery = `
-        SELECT COUNT(*) as prediction_count
-        FROM predictions p
-        JOIN races r ON p.race_id = r.race_id
-        WHERE p.user_id = $1 AND r.race_date = CURRENT_DATE
-      `;
-      
-      const predictionResult = await db.query(predictionCheckQuery, [user.user_id]);
-      const hasPrediction = predictionResult.rows[0].prediction_count > 0;
-
       // 今日既に通知を送信したかチェック
       const notificationCheckQuery = `
         SELECT COUNT(*) as notification_count
@@ -113,17 +102,17 @@ async function sendDailyReminderNotifications(firstRace) {
       const notificationResult = await db.query(notificationCheckQuery, [user.user_id]);
       const alreadyNotified = notificationResult.rows[0].notification_count > 0;
 
-      if (!hasPrediction && !alreadyNotified) {
+      if (!alreadyNotified) {
         usersToNotify.push(user);
       }
     }
 
     if (usersToNotify.length === 0) {
-      console.log('   ℹ️  通知対象のユーザーはいません（全員予想済みまたは送信済み）');
+      console.log('   ℹ️  通知対象のユーザーはいません（全員送信済み）');
       return;
     }
 
-    console.log(`   📬 通知対象: ${usersToNotify.length}名（まだ予想していないユーザー）`);
+    console.log(`   📬 通知対象: ${usersToNotify.length}名（全ユーザーへのリマインダー）`);
 
     // 各ユーザーに督促通知を送信
     let successCount = 0;
@@ -166,7 +155,7 @@ async function sendReminderPushToUser(userId, firstRace) {
     // 通知ペイロードを作成
     const payload = JSON.stringify({
       title: '🏇 本日のレース予想締切まもなく',
-      body: `まだ予想を投稿していません。${firstRace.race_name}の発走前に予想しましょう！`,
+      body: '本日のレース予想をお忘れなく！',
       icon: '/icons/icon-192.png',
       badge: '/icons/icon-192.png',
       tag: `daily-reminder-${firstRace.race_date}`,
@@ -236,7 +225,7 @@ function startScheduler() {
   console.log('🚀 レース予想締切通知スケジューラーを起動します...');
   console.log(`📍 環境: ${process.env.NODE_ENV || 'development'}`);
   console.log(`⏰ チェック間隔: 1分ごと`);
-  console.log(`📋 通知内容: その日の最初のレース30分前に、まだ予想していない人に督促\n`);
+  console.log(`📋 通知内容: その日の最初のレース30分前に全ユーザーへリマインダー（1日1回）\n`);
 
   // 1分ごとに実行（毎分0秒に実行）
   const job = schedule.scheduleJob('0 * * * * *', checkAndNotifyDailyReminder);

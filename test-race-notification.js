@@ -121,12 +121,10 @@ async function testNotificationLogic() {
       console.log(`   📊 今日の予想: ${hasPrediction ? `${predictionCount}件` : 'なし'}`);
       console.log(`   📬 本日の通知: ${alreadyNotified ? '送信済み' : '未送信'}`);
       
-      // 通知対象かどうか
-      if (!hasPrediction && !alreadyNotified) {
-        console.log(`   🎯 通知対象: YES（予想なし & 未通知）`);
-      } else if (hasPrediction) {
-        console.log(`   ⏭️  通知対象: NO（既に予想済み）`);
-      } else if (alreadyNotified) {
+      // 通知対象かどうか（全ユーザーが対象、送信済みは除く）
+      if (!alreadyNotified) {
+        console.log(`   🎯 通知対象: YES（全ユーザーへのリマインダー）`);
+      } else {
         console.log(`   ⏭️  通知対象: NO（既に通知送信済み）`);
       }
       
