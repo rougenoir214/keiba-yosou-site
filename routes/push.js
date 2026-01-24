@@ -19,7 +19,7 @@ if (vapidPublicKey && vapidPrivateKey) {
 // プッシュ通知の購読を保存
 router.post('/subscribe', async (req, res) => {
   try {
-    if (!req.session.userId) {
+    if (!req.session.user || !req.session.user.id) {
       return res.status(401).json({ error: '認証が必要です' });
     }
 
@@ -34,7 +34,7 @@ router.post('/subscribe', async (req, res) => {
       SELECT id FROM push_subscriptions 
       WHERE user_id = $1 AND endpoint = $2
     `;
-    const existing = await db.query(checkQuery, [req.session.userId, endpoint]);
+    const existing = await db.query(checkQuery, [req.session.user.id, endpoint]);
 
     if (existing.rows.length > 0) {
       // 既存の購読を更新
@@ -50,7 +50,7 @@ router.post('/subscribe', async (req, res) => {
         INSERT INTO push_subscriptions (user_id, endpoint, keys_p256dh, keys_auth)
         VALUES ($1, $2, $3, $4)
       `;
-      await db.query(insertQuery, [req.session.userId, endpoint, keys.p256dh, keys.auth]);
+      await db.query(insertQuery, [req.session.user.id, endpoint, keys.p256dh, keys.auth]);
     }
 
     res.json({ success: true, message: 'プッシュ通知の購読を保存しました' });
@@ -63,7 +63,7 @@ router.post('/subscribe', async (req, res) => {
 // プッシュ通知の購読を解除
 router.post('/unsubscribe', async (req, res) => {
   try {
-    if (!req.session.userId) {
+    if (!req.session.user || !req.session.user.id) {
       return res.status(401).json({ error: '認証が必要です' });
     }
 
@@ -77,7 +77,7 @@ router.post('/unsubscribe', async (req, res) => {
       DELETE FROM push_subscriptions 
       WHERE user_id = $1 AND endpoint = $2
     `;
-    await db.query(deleteQuery, [req.session.userId, endpoint]);
+    await db.query(deleteQuery, [req.session.user.id, endpoint]);
 
     res.json({ success: true, message: 'プッシュ通知の購読を解除しました' });
   } catch (error) {
@@ -89,7 +89,7 @@ router.post('/unsubscribe', async (req, res) => {
 // テスト用: プッシュ通知を送信（開発時のみ）
 router.post('/test-send', async (req, res) => {
   try {
-    if (!req.session.userId) {
+    if (!req.session.user || !req.session.user.id) {
       return res.status(401).json({ error: '認証が必要です' });
     }
 
@@ -99,7 +99,7 @@ router.post('/test-send', async (req, res) => {
       FROM push_subscriptions 
       WHERE user_id = $1
     `;
-    const result = await db.query(query, [req.session.userId]);
+    const result = await db.query(query, [req.session.user.id]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'プッシュ通知の購読が見つかりません' });
