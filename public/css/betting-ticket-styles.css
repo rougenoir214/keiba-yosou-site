@@ -12,11 +12,12 @@
   background: #f8f8f8;
   border: 2px solid #000;
   width: 320px;
-  height: 240px;
+  min-height: 240px;
+  height: auto;
   font-family: 'MS Gothic', 'Courier New', monospace;
   position: relative;
   box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.25);
-  overflow: hidden;
+  overflow: visible;
   /* 背景に薄い水色の馬のイラスト */
   background-image: 
     url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><text x="120" y="60" font-size="100" fill="rgba(0,200,200,0.08)" font-weight="bold">馬</text><text x="120" y="140" font-size="30" fill="rgba(0,200,200,0.06)" font-weight="bold">JRA</text></svg>');
