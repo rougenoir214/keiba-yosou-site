@@ -297,17 +297,17 @@ router.post('/:race_id/bets', requireAuth, async (req, res) => {
       }
       // ボックスの場合はhorsesをそのまま使用
       
-      // 1件の馬券として登録
+      // 1件の馬券として登録（bet_countも保存）
       await pool.query(
-        'INSERT INTO bets (user_id, race_id, bet_type, horses, amount, bet_format) VALUES ($1, $2, $3, $4, $5, $6)',
-        [req.session.user.id, req.params.race_id, bet_type, horsesString, totalCost, bet_format]
+        'INSERT INTO bets (user_id, race_id, bet_type, horses, amount, bet_format, bet_count) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+        [req.session.user.id, req.params.race_id, bet_type, horsesString, totalCost, bet_format, combinations.length]
       );
     } else {
       // 単式の場合は従来通り個別に登録
       for (const combo of combinations) {
         await pool.query(
-          'INSERT INTO bets (user_id, race_id, bet_type, horses, amount, bet_format) VALUES ($1, $2, $3, $4, $5, $6)',
-          [req.session.user.id, req.params.race_id, bet_type, combo, parseInt(amount), 'single']
+          'INSERT INTO bets (user_id, race_id, bet_type, horses, amount, bet_format, bet_count) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+          [req.session.user.id, req.params.race_id, bet_type, combo, parseInt(amount), 'single', 1]
         );
       }
     }
@@ -359,23 +359,24 @@ router.post('/:race_id/auto-bet', requireAuth, async (req, res) => {
     // 購入パターンを決定
     if (markCount === 1) {
       // ①印1個：単勝10,000円
-      betsToInsert.push({ bet_type: 'tansho', horses: horses[0].toString(), amount: 10000, bet_format: 'single' });
+      betsToInsert.push({ bet_type: 'tansho', horses: horses[0].toString(), amount: 10000, bet_format: 'single', bet_count: 1 });
       
     } else if (markCount === 2) {
       // ②印2個：重い馬の単勝5,000円 + 2頭の馬連5,000円
-      betsToInsert.push({ bet_type: 'tansho', horses: horses[0].toString(), amount: 5000, bet_format: 'single' });
+      betsToInsert.push({ bet_type: 'tansho', horses: horses[0].toString(), amount: 5000, bet_format: 'single', bet_count: 1 });
       // 馬連は馬番順にソート
       const umarenHorses = [horses[0], horses[1]].sort((a, b) => a - b);
       betsToInsert.push({ 
         bet_type: 'umaren', 
         horses: `${umarenHorses[0]},${umarenHorses[1]}`, 
         amount: 5000,
-        bet_format: 'single'
+        bet_format: 'single',
+        bet_count: 1
       });
       
     } else if (markCount === 3) {
       // ③印3個：単勝3,000円 + 馬連ボックス6,000円（3点×2,000円） + 3連複1,000円
-      betsToInsert.push({ bet_type: 'tansho', horses: horses[0].toString(), amount: 3000, bet_format: 'single' });
+      betsToInsert.push({ bet_type: 'tansho', horses: horses[0].toString(), amount: 3000, bet_format: 'single', bet_count: 1 });
       
       // 馬連ボックス（3頭BOX、3C2=3点） - 1件の馬券として保存
       const umarenBoxHorses = horses.slice(0, 3).sort((a, b) => a - b);
@@ -383,7 +384,8 @@ router.post('/:race_id/auto-bet', requireAuth, async (req, res) => {
         bet_type: 'umaren', 
         horses: umarenBoxHorses.join(','), 
         amount: 6000, // 3点×2,000円
-        bet_format: 'box' 
+        bet_format: 'box',
+        bet_count: 3
       });
       
       // 3連複（1点）- 馬番順にソート
@@ -392,12 +394,13 @@ router.post('/:race_id/auto-bet', requireAuth, async (req, res) => {
         bet_type: 'sanrenpuku', 
         horses: sanrenpukuHorses.join(','), 
         amount: 1000,
-        bet_format: 'single'
+        bet_format: 'single',
+        bet_count: 1
       });
       
     } else if (markCount === 4) {
       // ④印4個：単勝2,000円 + 上位3頭の馬連ボックス6,000円（3点×2,000円） + 4頭の3連複ボックス2,000円（4点×500円）
-      betsToInsert.push({ bet_type: 'tansho', horses: horses[0].toString(), amount: 2000, bet_format: 'single' });
+      betsToInsert.push({ bet_type: 'tansho', horses: horses[0].toString(), amount: 2000, bet_format: 'single', bet_count: 1 });
       
       // 上位3頭の馬連ボックス（3C2=3点） - 1件の馬券として保存
       const umarenBoxHorses = horses.slice(0, 3).sort((a, b) => a - b);
@@ -405,7 +408,8 @@ router.post('/:race_id/auto-bet', requireAuth, async (req, res) => {
         bet_type: 'umaren', 
         horses: umarenBoxHorses.join(','), 
         amount: 6000, // 3点×2,000円
-        bet_format: 'box' 
+        bet_format: 'box',
+        bet_count: 3
       });
       
       // 4頭の3連複ボックス（4C3=4点） - 1件の馬券として保存
@@ -414,12 +418,13 @@ router.post('/:race_id/auto-bet', requireAuth, async (req, res) => {
         bet_type: 'sanrenpuku', 
         horses: sanrenpukuBoxHorses.join(','), 
         amount: 2000, // 4点×500円
-        bet_format: 'box' 
+        bet_format: 'box',
+        bet_count: 4
       });
       
     } else if (markCount === 5) {
       // ⑤印5個：単勝2,000円 + 上位3頭の馬連ボックス3,000円（3点×1,000円） + 5頭の3連複ボックス5,000円（10点×500円）
-      betsToInsert.push({ bet_type: 'tansho', horses: horses[0].toString(), amount: 2000, bet_format: 'single' });
+      betsToInsert.push({ bet_type: 'tansho', horses: horses[0].toString(), amount: 2000, bet_format: 'single', bet_count: 1 });
       
       // 上位3頭の馬連ボックス（3C2=3点） - 1件の馬券として保存
       const umarenBoxHorses = horses.slice(0, 3).sort((a, b) => a - b);
@@ -427,7 +432,8 @@ router.post('/:race_id/auto-bet', requireAuth, async (req, res) => {
         bet_type: 'umaren', 
         horses: umarenBoxHorses.join(','), 
         amount: 3000, // 3点×1,000円
-        bet_format: 'box' 
+        bet_format: 'box',
+        bet_count: 3
       });
       
       // 5頭の3連複ボックス（5C3=10点） - 1件の馬券として保存
@@ -436,15 +442,16 @@ router.post('/:race_id/auto-bet', requireAuth, async (req, res) => {
         bet_type: 'sanrenpuku', 
         horses: sanrenpukuBoxHorses.join(','), 
         amount: 5000, // 10点×500円
-        bet_format: 'box' 
+        bet_format: 'box',
+        bet_count: 10
       });
     }
     
     // 馬券を一括登録
     for (const bet of betsToInsert) {
       await pool.query(
-        'INSERT INTO bets (user_id, race_id, bet_type, horses, amount, bet_format) VALUES ($1, $2, $3, $4, $5, $6)',
-        [req.session.user.id, req.params.race_id, bet.bet_type, bet.horses, bet.amount, bet.bet_format || 'single']
+        'INSERT INTO bets (user_id, race_id, bet_type, horses, amount, bet_format, bet_count) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+        [req.session.user.id, req.params.race_id, bet.bet_type, bet.horses, bet.amount, bet.bet_format || 'single', bet.bet_count]
       );
     }
     
