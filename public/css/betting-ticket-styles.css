@@ -238,7 +238,8 @@
   .betting-ticket {
     width: 100%;
     max-width: 360px;
-    height: 220px;
+    min-height: 220px;
+    height: auto;
   }
   
   .ticket-left-section {
@@ -266,6 +267,7 @@
   
   .ticket-right-content {
     padding: 10px 12px;
+    overflow: visible;
   }
   
   .ticket-single .ticket-umaban {
@@ -278,6 +280,22 @@
   
   .ticket-multi .ticket-numbers {
     font-size: 24px;
+  }
+  
+  /* フォーメーション表示の最適化（スマホ） */
+  .formation-number {
+    font-size: 10px;
+    padding: 1px 3px;
+    min-width: 18px;
+    border-width: 1.5px;
+  }
+  
+  .formation-arrow {
+    font-size: 14px;
+  }
+  
+  .formation-horses {
+    gap: 0.5px;
   }
   
   .ticket-stamp {
