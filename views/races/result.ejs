@@ -368,7 +368,7 @@ const sortedPayouts = payouts.sort((a, b) => {
                                                 <span class="formation-arrow">▶</span>
                                                 <div class="formation-horses">
                                                     <% group.forEach((h, i) => { %>
-                                                        <span class="formation-number"><%= h %></span><% if (i < group.length - 1) { %><span style="margin: 0 1px;">,</span><% } %>
+                                                        <span class="formation-number"><%= h %></span>
                                                     <% }); %>
                                                 </div>
                                             </div>
@@ -377,7 +377,7 @@ const sortedPayouts = payouts.sort((a, b) => {
                                 <% } %>
                                 
                                 <div style="font-size: 10px; margin-top: 3px; color: #666;">
-                                    組合せ数: 多数
+                                    組合せ数: <%= bet.bet_count %>点
                                 </div>
                                 <div class="ticket-amount" style="margin-top: 5px;"><%= bet.amount.toLocaleString() %>円</div>
                             </div>
