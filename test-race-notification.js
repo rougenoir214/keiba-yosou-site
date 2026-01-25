@@ -16,9 +16,12 @@ async function testNotificationLogic() {
         r.race_name,
         r.race_date,
         r.race_time,
-        EXTRACT(EPOCH FROM (CAST(r.race_time AS TIME) - CURRENT_TIME::TIME))/60 as minutes_until
+        EXTRACT(EPOCH FROM (
+          CAST(r.race_time AS TIME) - 
+          (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Tokyo')::time
+        ))/60 as minutes_until
       FROM races r
-      WHERE r.race_date = CURRENT_DATE
+      WHERE r.race_date = (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Tokyo')::date
       ORDER BY r.race_time ASC
       LIMIT 1
     `;

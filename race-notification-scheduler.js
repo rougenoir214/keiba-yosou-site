@@ -19,18 +19,22 @@ if (vapidPublicKey && vapidPrivateKey) {
 // その日の最初のレースの30分前に、まだ予想していないユーザーに通知
 async function checkAndNotifyDailyReminder() {
   try {
-    console.log('⏰ 本日のレース予想締切チェック開始:', new Date().toLocaleString('ja-JP'));
+    console.log('⏰ 本日のレース予想締切チェック開始:', new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }));
 
     // 今日の最初のレース（最も早い発走時刻）の30分前（±2分の誤差を許容）かチェック
+    // データは日本時間で保存されているため、日本時間で比較
     const firstRaceQuery = `
       SELECT 
         r.id as race_id,
         r.race_name,
         r.race_date,
         r.race_time,
-        EXTRACT(EPOCH FROM (CAST(r.race_time AS TIME) - CURRENT_TIME::TIME))/60 as minutes_until
+        EXTRACT(EPOCH FROM (
+          CAST(r.race_time AS TIME) - 
+          (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Tokyo')::time
+        ))/60 as minutes_until
       FROM races r
-      WHERE r.race_date = CURRENT_DATE
+      WHERE r.race_date = (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Tokyo')::date
       ORDER BY r.race_time ASC
       LIMIT 1
     `;
@@ -90,13 +94,13 @@ async function sendDailyReminderNotifications(firstRace) {
     const usersToNotify = [];
     
     for (const user of allUsersResult.rows) {
-      // 今日既に通知を送信したかチェック
+      // 今日既に通知を送信したかチェック（日本時間基準）
       const notificationCheckQuery = `
         SELECT COUNT(*) as notification_count
         FROM race_notifications
         WHERE user_id = $1 
           AND notification_type = 'daily_reminder'
-          AND DATE(sent_at) = CURRENT_DATE
+          AND DATE(sent_at AT TIME ZONE 'Asia/Tokyo') = (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Tokyo')::date
       `;
       
       const notificationResult = await db.query(notificationCheckQuery, [user.user_id]);

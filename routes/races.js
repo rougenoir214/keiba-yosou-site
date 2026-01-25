@@ -117,7 +117,7 @@ router.get('/', async (req, res) => {
       SELECT r.*, COUNT(h.id) as horse_count 
       FROM races r 
       LEFT JOIN horses h ON r.race_id = h.race_id 
-      WHERE r.race_date >= CURRENT_DATE - INTERVAL '14 days'
+      WHERE r.race_date >= (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Tokyo')::date - INTERVAL '14 days'
       GROUP BY r.id 
       ORDER BY r.race_date DESC, r.race_time DESC
     `);
