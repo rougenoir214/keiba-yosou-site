@@ -384,7 +384,11 @@ const sortedPayouts = payouts.sort((a, b) => {
                         <% } else { %>
                             <!-- その他（単式の2連系・3連系） -->
                             <div>
-                                <div class="ticket-numbers"><%= horses.join('-') %></div>
+                                <% 
+                                // 着順がある馬券（馬単・3連単）は→、それ以外は-
+                                const delimiter = (bet.bet_type === 'umatan' || bet.bet_type === 'sanrentan') ? '→' : '-';
+                                %>
+                                <div class="ticket-numbers"><%= horses.join(delimiter) %></div>
                                 <div class="ticket-amount"><%= bet.amount.toLocaleString() %>円</div>
                             </div>
                         <% } %>
