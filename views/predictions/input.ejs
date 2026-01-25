@@ -107,6 +107,12 @@ td { padding: 12px; border-bottom: 1px solid #eee; }
 <h1>📝 予想入力 - <%= race.race_name %></h1>
 <p>ユーザー: <%= user.display_name %></p>
 <p style="color: #f44336; font-weight: bold;">⏰ レース開始時刻: <%= race.race_date %> <%= race.race_time %> （開始時刻以降は購入不可）</p>
+
+<!-- ヒント表示 -->
+<div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px 15px; margin: 15px 0; border-radius: 6px; font-size: 14px; color: #856404;">
+    ⚠️ 仮想の馬券です。最大10,000円まで購入可能
+</div>
+
 <%- include('../common_nav', { currentPage: 'races', user: user }) %>
 <a href="/races/<%= race.race_id %>" class="back-link">← 出馬表に戻る</a>
 </div>
@@ -937,7 +943,7 @@ function updateUmatanFormationSelection() {
     highlightLabels(document.querySelectorAll('input[name="umatan_form_first"]'), 'horse-checkbox-label');
     highlightLabels(document.querySelectorAll('input[name="umatan_form_second"]'), 'horse-checkbox-label');
     
-    document.getElementById('horses_input').value = first.map(f => f.value).join(',') + '-' + second.map(s => s.value).join(',');
+    document.getElementById('horses_input').value = first.map(f => f.value).join(',') + '>' + second.map(s => s.value).join(',');
     document.getElementById('bet_count').value = count;
     document.getElementById('umatan-form-count').textContent = count + '点';
     const amount = parseInt(document.getElementById('amount').value) || 100;
@@ -1073,8 +1079,8 @@ function updateSanrentanFormationSelection() {
     highlightLabels(document.querySelectorAll('input[name="sanrentan_form_third"]'), 'horse-checkbox-label-small');
     
     document.getElementById('horses_input').value = 
-        first.map(f => f.value).join(',') + '-' + 
-        second.map(s => s.value).join(',') + '-' + 
+        first.map(f => f.value).join(',') + '>' + 
+        second.map(s => s.value).join(',') + '>' + 
         third.map(t => t.value).join(',');
     document.getElementById('bet_count').value = count;
     document.getElementById('sanrentan-form-count').textContent = count + '点';
