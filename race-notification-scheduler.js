@@ -65,7 +65,11 @@ async function checkAndNotifyDailyReminder() {
 
     console.log('✅ 本日のレース予想締切チェック完了\n');
   } catch (error) {
-    console.error('❌ 本日のレース予想締切チェックエラー:', error);
+    console.error('❌ 本日のレース予想締切チェックエラー:', error.message);
+    if (error.code === 'ETIMEDOUT' || error.code === 'ECONNREFUSED') {
+      console.error('🔌 データベース接続エラー: Supabaseへの接続がタイムアウトしました');
+      console.error('   対処方法: Supabaseのステータスを確認してください');
+    }
   }
 }
 
