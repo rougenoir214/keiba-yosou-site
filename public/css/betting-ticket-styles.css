@@ -355,3 +355,16 @@
   margin: 0;
   flex-shrink: 0;
 }
+
+/* 着順ラベル用スタイル（馬単・3連単フォーメーション） */
+.formation-label {
+  background: #667eea;
+  color: white;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: bold;
+  border-radius: 3px;
+  min-width: 35px;
+  text-align: center;
+  flex-shrink: 0;
+}

@@ -325,18 +325,57 @@ const sortedPayouts = payouts.sort((a, b) => {
                             <!-- フォーメーション買い -->
                             <div>
                                 <div style="font-size: 12px; font-weight: bold; margin-bottom: 3px;">フォーメーション</div>
-                                <div class="ticket-formation">
-                                    <% formationGroups.forEach((group, idx) => { %>
-                                        <div class="formation-group">
-                                            <span class="formation-arrow">▶</span>
-                                            <div class="formation-horses">
-                                                <% group.forEach((h, i) => { %>
-                                                    <span class="formation-number"><%= h %></span><% if (i < group.length - 1) { %><span style="margin: 0 1px;">,</span><% } %>
-                                                <% }); %>
+                                
+                                <% if (bet.bet_type === 'umatan') { %>
+                                    <!-- 馬単フォーメーション：着順表示 -->
+                                    <div class="ticket-formation">
+                                        <% formationGroups.forEach((group, idx) => { %>
+                                            <div class="formation-group">
+                                                <span class="formation-label"><%= idx + 1 %>着</span>
+                                                <div class="formation-horses">
+                                                    <% group.forEach((h, i) => { %>
+                                                        <span class="formation-number"><%= h %></span><% if (i < group.length - 1) { %><span style="margin: 0 1px;">,</span><% } %>
+                                                    <% }); %>
+                                                </div>
                                             </div>
-                                        </div>
-                                    <% }); %>
-                                </div>
+                                            <% if (idx < formationGroups.length - 1) { %>
+                                                <div style="text-align: center; font-size: 14px; color: #667eea; font-weight: bold; margin: 2px 0;">↓</div>
+                                            <% } %>
+                                        <% }); %>
+                                    </div>
+                                <% } else if (bet.bet_type === 'sanrentan') { %>
+                                    <!-- 3連単フォーメーション：着順表示 -->
+                                    <div class="ticket-formation">
+                                        <% formationGroups.forEach((group, idx) => { %>
+                                            <div class="formation-group">
+                                                <span class="formation-label"><%= idx + 1 %>着</span>
+                                                <div class="formation-horses">
+                                                    <% group.forEach((h, i) => { %>
+                                                        <span class="formation-number"><%= h %></span><% if (i < group.length - 1) { %><span style="margin: 0 1px;">,</span><% } %>
+                                                    <% }); %>
+                                                </div>
+                                            </div>
+                                            <% if (idx < formationGroups.length - 1) { %>
+                                                <div style="text-align: center; font-size: 14px; color: #667eea; font-weight: bold; margin: 2px 0;">↓</div>
+                                            <% } %>
+                                        <% }); %>
+                                    </div>
+                                <% } else { %>
+                                    <!-- その他のフォーメーション -->
+                                    <div class="ticket-formation">
+                                        <% formationGroups.forEach((group, idx) => { %>
+                                            <div class="formation-group">
+                                                <span class="formation-arrow">▶</span>
+                                                <div class="formation-horses">
+                                                    <% group.forEach((h, i) => { %>
+                                                        <span class="formation-number"><%= h %></span><% if (i < group.length - 1) { %><span style="margin: 0 1px;">,</span><% } %>
+                                                    <% }); %>
+                                                </div>
+                                            </div>
+                                        <% }); %>
+                                    </div>
+                                <% } %>
+                                
                                 <div style="font-size: 10px; margin-top: 3px; color: #666;">
                                     組合せ数: 多数
                                 </div>
