@@ -259,7 +259,12 @@
       <hr style="margin: 30px 0; border: none; border-top: 1px solid #e0e0e0;">
 
       <h3 style="margin-bottom: 15px; color: #333; font-size: 18px;">🔔 プッシュ通知設定</h3>
-      <p style="margin-bottom: 20px; font-size: 13px; color: #666;">レース発走30分前に通知を受け取ることができます</p>
+      <p style="margin-bottom: 15px; font-size: 13px; color: #666;">レース発走30分前に通知を受け取ることができます</p>
+      
+      <!-- ヒント表示 -->
+      <div style="background: #e3f2fd; border-left: 4px solid #2196f3; padding: 12px 15px; margin-bottom: 15px; border-radius: 6px; font-size: 13px; color: #1976d2;">
+        💡 その日の最初のレース30分前に「本日のレース予想締切まもなく」という通知が届きます
+      </div>
       
       <!-- VAPIDキーを隠しフィールドで渡す -->
       <input type="hidden" id="vapid-public-key" value="<%= process.env.VAPID_PUBLIC_KEY || '' %>">

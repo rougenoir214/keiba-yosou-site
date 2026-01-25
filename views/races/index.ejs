@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>レース一覧 - 競馬予想共有サイト</title>
     <%- include('../pwa_head') %>
+    <link rel="stylesheet" href="/css/welcome-guide.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -162,6 +163,12 @@
     <div class="container">
         <div class="header">
             <h1>🏇 レース一覧（直近2週間）</h1>
+            
+            <!-- ヒント表示 -->
+            <div style="background: #e3f2fd; border-left: 4px solid #2196f3; padding: 12px 15px; margin: 15px 0; border-radius: 6px; font-size: 14px; color: #1976d2;">
+                💡 レースをタップして予想を付けよう！馬券の購入もできます
+            </div>
+            
             <%- include('../common_nav', { currentPage: 'races', user: user }) %>
         </div>
 
@@ -222,6 +229,13 @@ async function deleteRace(raceId, raceName) {
     }
 }
 </script>
+
+<!-- ウェルカムガイド -->
+<script>
+  // userオブジェクトをグローバルに設定
+  window.user = <%- user ? JSON.stringify(user) : 'null' %>;
+</script>
+<script src="/js/welcome-guide.js"></script>
 
 </body>
 </html>

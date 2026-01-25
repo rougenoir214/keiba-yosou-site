@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>使い方ガイド - 競馬予想サイト</title>
+  <%- include('pwa_head') %>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      padding: 40px;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 32px;
+      text-align: center;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 30px;
+      font-size: 14px;
+    }
+
+    .toc {
+      background: #f8f9fa;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 30px;
+    }
+
+    .toc h2 {
+      font-size: 18px;
+      color: #333;
+      margin-bottom: 15px;
+    }
+
+    .toc-list {
+      list-style: none;
+    }
+
+    .toc-item {
+      padding: 8px 0;
+    }
+
+    .toc-link {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 500;
+      transition: all 0.3s;
+    }
+
+    .toc-link:hover {
+      color: #764ba2;
+      text-decoration: underline;
+    }
+
+    .section {
+      margin-bottom: 40px;
+    }
+
+    .section-title {
+      font-size: 24px;
+      color: #333;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 3px solid #667eea;
+    }
+
+    .accordion {
+      margin-bottom: 15px;
+    }
+
+    .accordion-header {
+      background: #f8f9fa;
+      padding: 15px 20px;
+      cursor: pointer;
+      border-radius: 10px;
+      font-weight: 600;
+      color: #333;
+      transition: all 0.3s;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .accordion-header:hover {
+      background: #e9ecef;
+    }
+
+    .accordion-header.active {
+      background: #667eea;
+      color: white;
+    }
+
+    .accordion-icon {
+      transition: transform 0.3s;
+    }
+
+    .accordion-header.active .accordion-icon {
+      transform: rotate(180deg);
+    }
+
+    .accordion-content {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+      padding: 0 20px;
+    }
+
+    .accordion-content.active {
+      max-height: 2000px;
+      padding: 20px;
+    }
+
+    .accordion-content p {
+      line-height: 1.8;
+      color: #555;
+      margin-bottom: 10px;
+    }
+
+    .accordion-content ul {
+      margin-left: 20px;
+      line-height: 1.8;
+      color: #555;
+    }
+
+    .accordion-content strong {
+      color: #333;
+    }
+
+    .highlight-box {
+      background: #e3f2fd;
+      border-left: 4px solid #2196f3;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 6px;
+    }
+
+    .warning-box {
+      background: #fff3e0;
+      border-left: 4px solid #ff9800;
+      padding: 15px;
+      margin: 15px 0;
+      border-radius: 6px;
+    }
+
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 30px;
+      color: #667eea;
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        padding: 30px 20px;
+      }
+
+      h1 {
+        font-size: 26px;
+      }
+
+      .section-title {
+        font-size: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>❓ 使い方ガイド</h1>
+    <p class="subtitle">競馬予想サイトの使い方を詳しく説明します</p>
+
+    <%- include('common_nav', { currentPage: 'help', user: user }) %>
+
+    <!-- 目次 -->
+    <div class="toc">
+      <h2>📖 目次</h2>
+      <ul class="toc-list">
+        <li class="toc-item"><a href="#basics" class="toc-link">基本的な使い方</a></li>
+        <li class="toc-item"><a href="#account" class="toc-link">アカウント設定</a></li>
+        <li class="toc-item"><a href="#pwa" class="toc-link">PWA機能（スマホ向け）</a></li>
+        <li class="toc-item"><a href="#faq" class="toc-link">よくある質問</a></li>
+      </ul>
+    </div>
+
+    <!-- セクション1: 基本的な使い方 -->
+    <div class="section" id="basics">
+      <h2 class="section-title">📚 基本的な使い方</h2>
+
+      <!-- 会員登録とログイン -->
+      <div class="accordion">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>✅ 会員登録とログイン</span>
+          <span class="accordion-icon">▼</span>
+        </div>
+        <div class="accordion-content">
+          <p><strong>新規登録：</strong></p>
+          <ul>
+            <li>ユーザー名（ログインID）と表示名を設定</li>
+            <li>パスワードを設定（6文字以上）</li>
+            <li>次回からユーザー名とパスワードでログイン</li>
+          </ul>
+          <div class="warning-box">
+            ⚠️ パスワードは忘れないようメモしておくことを推奨します
+          </div>
+        </div>
+      </div>
+
+      <!-- レース一覧 -->
+      <div class="accordion">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>✅ レース一覧の見方</span>
+          <span class="accordion-icon">▼</span>
+        </div>
+        <div class="accordion-content">
+          <p>今日のレース一覧が表示されます：</p>
+          <ul>
+            <li>レース名、発走時刻、開催場所を確認できます</li>
+            <li>レースをタップすると詳細画面へ移動します</li>
+            <li>予想や馬券購入ができます</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 予想の付け方 -->
+      <div class="accordion">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>✅ 予想の付け方</span>
+          <span class="accordion-icon">▼</span>
+        </div>
+        <div class="accordion-content">
+          <p><strong>印の付け方：</strong></p>
+          <ul>
+            <li>レースをタップして詳細画面へ</li>
+            <li>各馬に印を付けられます</li>
+            <li>◎本命、○対抗、▲単穴、△連下、☆注目</li>
+            <li>発走前なら何度でも変更可能</li>
+          </ul>
+          <div class="highlight-box">
+            💡 印は自由に使って予想を記録しましょう
+          </div>
+        </div>
+      </div>
+
+      <!-- 馬券の購入 -->
+      <div class="accordion">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>✅ 馬券の購入（仮想）</span>
+          <span class="accordion-icon">▼</span>
+        </div>
+        <div class="accordion-content">
+          <p><strong>購入方法：</strong></p>
+          <ul>
+            <li>単勝、複勝、馬連、馬単、ワイド、3連複、3連単から選択</li>
+            <li>馬番を選んで金額を入力</li>
+            <li>1レースあたり最大10,000円まで</li>
+          </ul>
+          <div class="warning-box">
+            ⚠️ 実際のお金は使用しません。仮想の馬券で予想力を磨けます
+          </div>
+        </div>
+      </div>
+
+      <!-- おまかせ購入 -->
+      <div class="accordion">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>✅ おまかせ購入</span>
+          <span class="accordion-icon">▼</span>
+        </div>
+        <div class="accordion-content">
+          <p><strong>自動で馬券を購入する便利機能：</strong></p>
+          <p>予想画面で印を付けた後、「🎲 おまかせ購入」ボタンを押すと、印の数に応じて自動的に馬券を購入できます。</p>
+          
+          <div style="margin: 15px 0;">
+            <p><strong>購入パターン：</strong></p>
+            <ul style="line-height: 2;">
+              <li><strong>印1つ</strong>：単勝 10,000円×1点</li>
+              <li><strong>印2つ</strong>：単勝 5,000円×1点 + 馬連 5,000円×1点</li>
+              <li><strong>印3つ</strong>：単勝 3,000円×1点 + 馬連ボックス 2,000円×3点 + 3連複 1,000円×1点</li>
+              <li><strong>印4つ</strong>：単勝 2,000円×1点 + 馬連ボックス（上位3頭）2,000円×3点 + 3連複ボックス 500円×4点</li>
+              <li><strong>印5つ</strong>：単勝 2,000円×1点 + 馬連ボックス（上位3頭）1,000円×3点 + 3連複ボックス 500円×10点</li>
+            </ul>
+          </div>
+
+          <div class="highlight-box">
+            💡 合計は常に10,000円です。複雑な組み合わせもワンクリックで購入できます
+          </div>
+
+          <div class="warning-box">
+            ⚠️ 既に馬券を購入している場合は、おまかせ購入は実行できません
+          </div>
+        </div>
+      </div>
+
+      <!-- 結果の確認 -->
+      <div class="accordion">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>✅ 結果の確認</span>
+          <span class="accordion-icon">▼</span>
+        </div>
+        <div class="accordion-content">
+          <p><strong>レース終了後：</strong></p>
+          <ul>
+            <li>自動的に結果が反映されます</li>
+            <li>的中した馬券には赤い「的中」スタンプ</li>
+            <li>ハズレた馬券には青い「ハズレ」スタンプ</li>
+            <li>払戻金と収支（プラス/マイナス）が表示されます</li>
+          </ul>
+          <div class="highlight-box">
+            💡 スタンプの色で結果が一目でわかります
+          </div>
+        </div>
+      </div>
+
+      <!-- ランキング -->
+      <div class="accordion">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>✅ ランキング</span>
+          <span class="accordion-icon">▼</span>
+        </div>
+        <div class="accordion-content">
+          <p><strong>全ユーザーの成績を確認：</strong></p>
+          <ul>
+            <li>的中率、回収率、収支で順位が決まります</li>
+            <li>自分の順位と成績を確認できます</li>
+            <li>他のユーザーとの比較ができます</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- セクション2: アカウント設定 -->
+    <div class="section" id="account">
+      <h2 class="section-title">⚙️ アカウント設定</h2>
+
+      <!-- ユーザー名の変更 -->
+      <div class="accordion">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>✅ ユーザー名の変更</span>
+          <span class="accordion-icon">▼</span>
+        </div>
+        <div class="accordion-content">
+          <p><strong>変更手順：</strong></p>
+          <ol>
+            <li>設定ページ（⚙️）を開く</li>
+            <li>「ユーザー名（ログインID）」を変更</li>
+            <li>現在のパスワードを入力</li>
+            <li>「変更を保存」をクリック</li>
+          </ol>
+          <div class="warning-box">
+            ⚠️ 次回ログイン時から新しいユーザー名を使用します
+          </div>
+        </div>
+      </div>
+
+      <!-- 表示名の変更 -->
+      <div class="accordion">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>✅ 表示名の変更</span>
+          <span class="accordion-icon">▼</span>
+        </div>
+        <div class="accordion-content">
+          <p><strong>変更手順：</strong></p>
+          <ol>
+            <li>設定ページ（⚙️）を開く</li>
+            <li>「表示名」を変更</li>
+            <li>現在のパスワードを入力</li>
+            <li>「変更を保存」をクリック</li>
+          </ol>
+          <div class="highlight-box">
+            💡 ランキングに表示される名前が変わります
+          </div>
+        </div>
+      </div>
+
+      <!-- パスワードの変更 -->
+      <div class="accordion">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>✅ パスワードの変更</span>
+          <span class="accordion-icon">▼</span>
+        </div>
+        <div class="accordion-content">
+          <p><strong>変更手順：</strong></p>
+          <ol>
+            <li>設定ページ（⚙️）を開く</li>
+            <li>「現在のパスワード」を入力</li>
+            <li>「新しいパスワード」を入力（6文字以上）</li>
+            <li>「新しいパスワード（確認用）」に同じパスワードを入力</li>
+            <li>「変更を保存」をクリック</li>
+          </ol>
+        </div>
+      </div>
+
+      <!-- パスワードを忘れた場合 -->
+      <div class="accordion">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>✅ パスワードを忘れた場合</span>
+          <span class="accordion-icon">▼</span>
+        </div>
+        <div class="accordion-content">
+          <p><strong>対処方法：</strong></p>
+          <ul>
+            <li>現在、パスワードリセット機能はありません</li>
+            <li>管理者にお問い合わせください</li>
+            <li>新しいアカウントを作成することも可能です</li>
+          </ul>
+          <div class="warning-box">
+            ⚠️ パスワードは忘れないようメモしておくことを推奨します
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- セクション3: PWA機能 -->
+    <div class="section" id="pwa">
+      <h2 class="section-title">📱 PWA機能（スマホ向け）</h2>
+
+      <!-- ホーム画面に追加 -->
+      <div class="accordion">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>✅ ホーム画面に追加（推奨）</span>
+          <span class="accordion-icon">▼</span>
+        </div>
+        <div class="accordion-content">
+          <p><strong>【iPhone】</strong></p>
+          <ol>
+            <li>Safariで開く</li>
+            <li>画面下部の「共有」ボタン（□に↑）をタップ</li>
+            <li>「ホーム画面に追加」を選択</li>
+            <li>「追加」をタップ</li>
+          </ol>
+          <p style="margin-top: 15px;"><strong>【Android】</strong></p>
+          <ol>
+            <li>Chromeで開く</li>
+            <li>メニュー（⋮）から「ホーム画面に追加」を選択</li>
+            <li>「追加」をタップ</li>
+          </ol>
+          <div class="highlight-box">
+            💡 ホーム画面に追加すると、アプリのように使えます
+          </div>
+        </div>
+      </div>
+
+      <!-- プッシュ通知の設定 -->
+      <div class="accordion">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>✅ プッシュ通知の設定</span>
+          <span class="accordion-icon">▼</span>
+        </div>
+        <div class="accordion-content">
+          <p><strong>設定手順：</strong></p>
+          <ol>
+            <li>設定ページ（⚙️）を開く</li>
+            <li>「プッシュ通知設定」で「有効にする」をタップ</li>
+            <li>ブラウザの通知許可ダイアログで「許可」を選択</li>
+            <li>その日の最初のレース30分前に通知が届きます</li>
+          </ol>
+          <div class="highlight-box">
+            💡 「本日のレース予想締切まもなく」というリマインダーが届きます
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- セクション4: よくある質問 -->
+    <div class="section" id="faq">
+      <h2 class="section-title">❓ よくある質問（FAQ）</h2>
+
+      <!-- Q1 -->
+      <div class="accordion">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>Q. 予想はいつまで可能？</span>
+          <span class="accordion-icon">▼</span>
+        </div>
+        <div class="accordion-content">
+          <p><strong>A. レースの発走時刻までです。</strong></p>
+          <p>発走後は変更できません。締切に間に合うよう早めに予想しましょう。</p>
+        </div>
+      </div>
+
+      <!-- Q2 -->
+      <div class="accordion">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>Q. 馬券の金額は実際のお金？</span>
+          <span class="accordion-icon">▼</span>
+        </div>
+        <div class="accordion-content">
+          <p><strong>A. 仮想の金額です。</strong></p>
+          <p>実際のお金は必要ありません。楽しみながら予想力を磨けます。</p>
+        </div>
+      </div>
+
+      <!-- Q3 -->
+      <div class="accordion">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>Q. 印の意味は？</span>
+          <span class="accordion-icon">▼</span>
+        </div>
+        <div class="accordion-content">
+          <p><strong>A. 以下の5種類があります：</strong></p>
+          <ul>
+            <li>◎ 本命</li>
+            <li>○ 対抗</li>
+            <li>▲ 単穴</li>
+            <li>△ 連下</li>
+            <li>☆ 注目</li>
+          </ul>
+          <p>自由に使って予想を記録しましょう。</p>
+        </div>
+      </div>
+
+      <!-- Q4 -->
+      <div class="accordion">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>Q. 通知が届かない</span>
+          <span class="accordion-icon">▼</span>
+        </div>
+        <div class="accordion-content">
+          <p><strong>A. 以下を確認してください：</strong></p>
+          
+          <p style="margin-top: 10px;"><strong>【iPhone】</strong></p>
+          <ul>
+            <li>Safariでホーム画面に追加していますか？</li>
+            <li>iOSのバージョンは16.4以上ですか？</li>
+            <li>設定→通知→該当アプリで通知が許可されていますか？</li>
+          </ul>
+          
+          <p style="margin-top: 10px;"><strong>【Android】</strong></p>
+          <ul>
+            <li>Chromeで通知が許可されていますか？</li>
+            <li>設定→アプリ→Chrome→通知で許可されていますか？</li>
+          </ul>
+          
+          <p style="margin-top: 10px;"><strong>【共通】</strong></p>
+          <ul>
+            <li>設定ページで「有効」になっていますか？</li>
+            <li>ホーム画面に追加したアプリから開いていますか？</li>
+            <li>おやすみモード/サイレントモード/集中モードになっていませんか？</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Q5 -->
+      <div class="accordion">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>Q. ユーザー名や表示名は変更できる？</span>
+          <span class="accordion-icon">▼</span>
+        </div>
+        <div class="accordion-content">
+          <p><strong>A. 設定ページからいつでも変更できます。</strong></p>
+          <ul>
+            <li>ユーザー名：ログイン時に使用するID</li>
+            <li>表示名：ランキングなどに表示される名前</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Q6 -->
+      <div class="accordion">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>Q. パスワードを忘れてしまった</span>
+          <span class="accordion-icon">▼</span>
+        </div>
+        <div class="accordion-content">
+          <p><strong>A. 管理者にお問い合わせください。</strong></p>
+          <p>現在、自動リセット機能はありません。新しいアカウントを作成することも可能です。</p>
+          <div class="warning-box">
+            ⚠️ パスワードは忘れないようメモしておくことを推奨します
+          </div>
+        </div>
+      </div>
+
+      <!-- Q7 -->
+      <div class="accordion">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>Q. ランキングはいつ更新される？</span>
+          <span class="accordion-icon">▼</span>
+        </div>
+        <div class="accordion-content">
+          <p><strong>A. レース結果が確定すると自動的に更新されます。</strong></p>
+          <p>リアルタイムで成績が反映されます。</p>
+        </div>
+      </div>
+
+      <!-- Q8 -->
+      <div class="accordion">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>Q. 収支とは？</span>
+          <span class="accordion-icon">▼</span>
+        </div>
+        <div class="accordion-content">
+          <p><strong>A. 馬券購入金額と払戻金の差額です。</strong></p>
+          <ul>
+            <li>プラスなら利益</li>
+            <li>マイナスなら損失</li>
+          </ul>
+          <p>ランキングの順位決定に使用されます。</p>
+        </div>
+      </div>
+
+      <!-- Q9 -->
+      <div class="accordion">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>Q. 的中スタンプの色の意味は？</span>
+          <span class="accordion-icon">▼</span>
+        </div>
+        <div class="accordion-content">
+          <p><strong>A. 以下の2種類があります：</strong></p>
+          <ul>
+            <li>赤い「的中」スタンプ：当たり</li>
+            <li>青い「ハズレ」スタンプ：外れ</li>
+          </ul>
+          <p>馬券の結果が一目でわかります。</p>
+        </div>
+      </div>
+
+      <!-- Q10 -->
+      <div class="accordion">
+        <div class="accordion-header" onclick="toggleAccordion(this)">
+          <span>Q. おまかせ購入とは？</span>
+          <span class="accordion-icon">▼</span>
+        </div>
+        <div class="accordion-content">
+          <p><strong>A. 予想印に基づいて自動的に馬券を購入する機能です。</strong></p>
+          <p>予想画面で印を付けた後、「🎲 おまかせ購入」ボタンを押すと、印の数に応じた最適な馬券の組み合わせを自動購入します。</p>
+          <ul>
+            <li>合計金額は常に10,000円</li>
+            <li>印の数が多いほど、複雑な組み合わせを購入</li>
+            <li>既に馬券を購入済みの場合は使えません</li>
+          </ul>
+          <div class="highlight-box">
+            💡 複雑な組み合わせを考える手間が省けて便利です
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="text-align: center; margin-top: 30px;">
+      <button onclick="showWelcomeGuide()" style="padding: 14px 30px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.3s;">
+        🎯 初回ガイドを再度表示
+      </button>
+    </div>
+
+    <a href="/" class="back-link">← トップページに戻る</a>
+  </div>
+
+  <link rel="stylesheet" href="/css/welcome-guide.css">
+  <script src="/js/welcome-guide.js"></script>
+  <script>
+    function showWelcomeGuide() {
+      // localStorageのフラグをクリアしてウェルカムガイドを表示
+      localStorage.removeItem('welcome_guide_shown');
+      if (window.welcomeGuide) {
+        window.welcomeGuide.show();
+      }
+    }
+
+    // userオブジェクトをグローバルに設定
+    window.user = <%- user ? JSON.stringify(user) : 'null' %>;
+  </script>
+
+  <script>
+    function toggleAccordion(header) {
+      const content = header.nextElementSibling;
+      const isActive = header.classList.contains('active');
+      
+      // 他のアコーディオンを閉じる（オプション）
+      // document.querySelectorAll('.accordion-header.active').forEach(h => {
+      //   if (h !== header) {
+      //     h.classList.remove('active');
+      //     h.nextElementSibling.classList.remove('active');
+      //   }
+      // });
+      
+      // 現在のアコーディオンをトグル
+      if (isActive) {
+        header.classList.remove('active');
+        content.classList.remove('active');
+      } else {
+        header.classList.add('active');
+        content.classList.add('active');
+      }
+    }
+
+    // ページ読み込み時にURLのハッシュに対応するセクションを開く
+    window.addEventListener('DOMContentLoaded', () => {
+      const hash = window.location.hash;
+      if (hash) {
+        const section = document.querySelector(hash);
+        if (section) {
+          section.scrollIntoView({ behavior: 'smooth' });
+          // そのセクションの最初のアコーディオンを開く
+          const firstAccordion = section.querySelector('.accordion-header');
+          if (firstAccordion) {
+            setTimeout(() => toggleAccordion(firstAccordion), 300);
+          }
+        }
+      }
+    });
+  </script>
+</body>
+</html>
