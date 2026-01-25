@@ -265,27 +265,27 @@
       <input type="hidden" id="vapid-public-key" value="<%= process.env.VAPID_PUBLIC_KEY || '' %>">
       
       <div class="form-group">
-        <div style="display: flex; align-items: center; justify-content: space-between; padding: 15px; background-color: #f8f9fa; border-radius: 10px;">
-          <div>
+        <div style="padding: 15px; background-color: #f8f9fa; border-radius: 10px;">
+          <div style="margin-bottom: 15px;">
             <strong style="color: #333;">プッシュ通知</strong>
             <p style="font-size: 12px; color: #666; margin-top: 5px;">
               ステータス: <span id="push-status" style="font-weight: 600;">確認中...</span>
             </p>
           </div>
-          <div>
+          <div style="display: flex; flex-direction: column; gap: 10px;">
             <button type="button" id="enable-push-btn" class="btn-primary" 
                     onclick="requestPushNotificationPermission()" 
-                    style="padding: 10px 20px; font-size: 14px; display: none;">
+                    style="width: 100%; padding: 12px; font-size: 14px; display: none;">
               有効にする
             </button>
             <button type="button" id="disable-push-btn" class="btn-secondary" 
                     onclick="unsubscribeFromPushNotifications()" 
-                    style="padding: 10px 20px; font-size: 14px; display: none;">
+                    style="width: 100%; padding: 12px; font-size: 14px; display: none;">
               無効にする
             </button>
             <button type="button" id="test-push-btn" class="btn-secondary" 
                     onclick="sendTestNotification()" 
-                    style="padding: 10px 20px; font-size: 14px; margin-left: 5px; display: none;">
+                    style="width: 100%; padding: 12px; font-size: 14px; display: none;">
               テスト送信
             </button>
           </div>
