@@ -60,25 +60,25 @@
   .shutuba-table .table-scroll-wrapper table thead th:nth-child(1),
   .shutuba-table .table-scroll-wrapper table tbody td:nth-child(1) {
     left: 0;
-    min-width: 40px;
+    min-width: 35px;
   }
 
   .shutuba-table .table-scroll-wrapper table thead th:nth-child(2),
   .shutuba-table .table-scroll-wrapper table tbody td:nth-child(2) {
-    left: 40px;
-    min-width: 40px;
+    left: 35px;
+    min-width: 35px;
   }
 
   .shutuba-table .table-scroll-wrapper table thead th:nth-child(3),
   .shutuba-table .table-scroll-wrapper table tbody td:nth-child(3) {
-    left: 80px;
+    left: 70px;
     min-width: 120px;
     max-width: 150px;
   }
 
   .shutuba-table .table-scroll-wrapper table thead th:nth-child(4),
   .shutuba-table .table-scroll-wrapper table tbody td:nth-child(4) {
-    left: 200px;
+    left: 190px;
     min-width: 60px;
   }
 
@@ -112,20 +112,20 @@
   .section .table-scroll-wrapper table thead th:nth-child(1),
   .section .table-scroll-wrapper table tbody td:nth-child(1) {
     left: 0;
-    min-width: 40px;
-    max-width: 40px;
+    min-width: 35px;
+    max-width: 35px;
   }
 
   .section .table-scroll-wrapper table thead th:nth-child(2),
   .section .table-scroll-wrapper table tbody td:nth-child(2) {
-    left: 40px;
-    min-width: 40px;
-    max-width: 40px;
+    left: 35px;
+    min-width: 35px;
+    max-width: 35px;
   }
 
   .section .table-scroll-wrapper table thead th:nth-child(3),
   .section .table-scroll-wrapper table tbody td:nth-child(3) {
-    left: 80px;
+    left: 70px;
     min-width: 100px;
     max-width: 110px;
   }
