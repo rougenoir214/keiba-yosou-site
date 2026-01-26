@@ -223,11 +223,15 @@ router.post('/fetch-result/:race_id', requireAdmin, async (req, res) => {
       // タイム（8列目）
       const timeText = $row.find('td:nth-child(8)').text().trim();
       
+      // 着差（9列目）
+      const marginText = $row.find('td:nth-child(9)').text().trim();
+      
       if (!isNaN(rank) && !isNaN(umaban)) {
         results.push({
           rank: rank,
           umaban: umaban,
-          result_time: timeText || null
+          result_time: timeText || null,
+          margin: marginText || null
         });
       }
     });
@@ -388,8 +392,8 @@ router.post('/fetch-result/:race_id', requireAdmin, async (req, res) => {
     
     for (const result of uniqueResults) {
       await pool.query(
-        'INSERT INTO results (race_id, umaban, rank, result_time) VALUES ($1, $2, $3, $4) ON CONFLICT (race_id, umaban) DO UPDATE SET rank = EXCLUDED.rank, result_time = EXCLUDED.result_time',
-        [race_id, result.umaban, result.rank, result.result_time]
+        'INSERT INTO results (race_id, umaban, rank, result_time, margin) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (race_id, umaban) DO UPDATE SET rank = EXCLUDED.rank, result_time = EXCLUDED.result_time, margin = EXCLUDED.margin',
+        [race_id, result.umaban, result.rank, result.result_time, result.margin]
       );
     }
     

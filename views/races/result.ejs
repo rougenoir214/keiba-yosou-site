@@ -97,15 +97,21 @@ tr.no-rank td { color: #999; }
                 else if (result.rank === 2) bgColor = '#f0f0f0';
                 else if (result.rank === 3) bgColor = '#ffe0b2';
                 
-                // 着差計算（1着との時間差）
-                let timeDiff = '';
-                if (idx > 0 && result.result_time && rankedResults[0].result_time) {
+                // 着差表示（marginカラムがあればそれを使用、なければ計算）
+                let marginDisplay = '';
+                if (idx === 0) {
+                    marginDisplay = '-';
+                } else if (result.margin) {
+                    // netkeibaから取得した着差を表示
+                    marginDisplay = result.margin;
+                } else if (result.result_time && rankedResults[0].result_time) {
+                    // フォールバック：タイムから計算
                     const firstTime = parseFloat(rankedResults[0].result_time);
                     const currentTime = parseFloat(result.result_time);
                     const diff = currentTime - firstTime;
-                    timeDiff = diff > 0 ? `+${diff.toFixed(1)}` : '-';
+                    marginDisplay = diff > 0 ? `+${diff.toFixed(1)}` : '-';
                 } else {
-                    timeDiff = '-';
+                    marginDisplay = '-';
                 }
             %>
             <tr style="background: <%= bgColor %>;">
@@ -113,7 +119,7 @@ tr.no-rank td { color: #999; }
                 <td style="padding: 8px; text-align: center; border: 1px solid #ddd; font-weight: bold;"><%= result.umaban %></td>
                 <td style="padding: 8px; text-align: left; border: 1px solid #ddd;"><%= result.horse_name %></td>
                 <td style="padding: 8px; text-align: center; border: 1px solid #ddd;"><%= result.result_time || '-' %></td>
-                <td style="padding: 8px; text-align: center; border: 1px solid #ddd;"><%= timeDiff %></td>
+                <td style="padding: 8px; text-align: center; border: 1px solid #ddd;"><%= marginDisplay %></td>
             </tr>
             <% }); %>
         </tbody>
