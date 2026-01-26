@@ -6,6 +6,19 @@
   color: white !important;
 }
 
+/* 全画面：1-3着の背景色 */
+.table-scroll-wrapper table tbody tr.rank-1 td {
+  background: #fff9c4 !important;
+}
+
+.table-scroll-wrapper table tbody tr.rank-2 td {
+  background: #f0f0f0 !important;
+}
+
+.table-scroll-wrapper table tbody tr.rank-3 td {
+  background: #ffe0b2 !important;
+}
+
 /* テーブルラッパー */
 .table-scroll-wrapper {
   overflow-x: auto;
@@ -134,22 +147,6 @@
   .section .table-scroll-wrapper table thead th:nth-child(3),
   .section .table-scroll-wrapper table tbody td:nth-child(3) {
     border-right: 2px solid #ddd;
-  }
-
-  /* 1-3着の背景色を保持（レース結果の色に統一） */
-  /* 1位：黄色 */
-  .table-scroll-wrapper table tbody tr.rank-1 td {
-    background: #fff9c4 !important;
-  }
-
-  /* 2位：グレー */
-  .table-scroll-wrapper table tbody tr.rank-2 td {
-    background: #f0f0f0 !important;
-  }
-
-  /* 3位：オレンジ */
-  .table-scroll-wrapper table tbody tr.rank-3 td {
-    background: #ffe0b2 !important;
   }
 
   /* 予想印欄のスタイル */
