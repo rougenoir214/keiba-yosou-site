@@ -74,6 +74,53 @@ tr.no-rank td { color: #999; }
 <% if (results.length === 0) { %>
 <p style="color: #888;">まだ結果が登録されていません</p>
 <% } else { %>
+
+<!-- 5着までのタイム・着差表 -->
+<div style="margin-bottom: 20px; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+    <h3 style="margin-bottom: 10px; font-size: 16px; color: #333;">🏁 レース結果（5着まで）</h3>
+    <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+            <tr style="background: #f5f5f5;">
+                <th style="padding: 8px; text-align: center; border: 1px solid #ddd;">着順</th>
+                <th style="padding: 8px; text-align: center; border: 1px solid #ddd;">馬番</th>
+                <th style="padding: 8px; text-align: left; border: 1px solid #ddd;">馬名</th>
+                <th style="padding: 8px; text-align: center; border: 1px solid #ddd;">タイム</th>
+                <th style="padding: 8px; text-align: center; border: 1px solid #ddd;">着差</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% 
+            const rankedResults = results.filter(r => r.rank && r.rank <= 5).sort((a, b) => a.rank - b.rank);
+            rankedResults.forEach((result, idx) => { 
+                let bgColor = '';
+                if (result.rank === 1) bgColor = '#fff9c4';
+                else if (result.rank === 2) bgColor = '#f0f0f0';
+                else if (result.rank === 3) bgColor = '#ffe0b2';
+                
+                // 着差計算（1着との時間差）
+                let timeDiff = '';
+                if (idx > 0 && result.result_time && rankedResults[0].result_time) {
+                    const firstTime = parseFloat(rankedResults[0].result_time);
+                    const currentTime = parseFloat(result.result_time);
+                    const diff = currentTime - firstTime;
+                    timeDiff = diff > 0 ? `+${diff.toFixed(1)}` : '-';
+                } else {
+                    timeDiff = '-';
+                }
+            %>
+            <tr style="background: <%= bgColor %>;">
+                <td style="padding: 8px; text-align: center; border: 1px solid #ddd; font-weight: bold;"><%= result.rank %></td>
+                <td style="padding: 8px; text-align: center; border: 1px solid #ddd; font-weight: bold;"><%= result.umaban %></td>
+                <td style="padding: 8px; text-align: left; border: 1px solid #ddd;"><%= result.horse_name %></td>
+                <td style="padding: 8px; text-align: center; border: 1px solid #ddd;"><%= result.result_time || '-' %></td>
+                <td style="padding: 8px; text-align: center; border: 1px solid #ddd;"><%= timeDiff %></td>
+            </tr>
+            <% }); %>
+        </tbody>
+    </table>
+</div>
+
+<!-- 予想印との比較表 -->
 <% 
 // ユーザー一覧を取得（予想を入力したユーザー）
 const uniqueUsers = [...new Set(predictions.map(p => p.user_id))];
@@ -88,9 +135,9 @@ predictions.forEach(p => {
 <table>
 <thead>
 <tr>
-<th>着順</th><th>馬番</th><th>馬名</th><th>騎手</th><th>タイム</th>
+<th>着順</th><th>馬番</th><th>馬名</th>
 <% uniqueUsers.forEach(userId => { %>
-    <th style="background: #667eea; color: white; font-weight: bold; min-width: 50px;"><%= userMap[userId] %></th>
+    <th style="min-width: 50px;"><%= userMap[userId] %></th>
 <% }); %>
 </tr>
 </thead>
@@ -110,9 +157,10 @@ if (result.rank) {
 <tr class="<%= rowClass %>">
 <td><strong><%= result.rank || '-' %></strong></td>
 <td><strong><%= result.umaban %></strong></td>
-<td><%= result.horse_name %></td>
-<td><%= result.jockey %></td>
-<td><%= result.result_time || '-' %></td>
+<td>
+    <strong><%= result.horse_name %></strong>
+    <div style="font-size: 12px; color: #666;"><%= result.jockey %></div>
+</td>
 <% uniqueUsers.forEach(userId => { %>
     <% 
     const userPred = predictions.find(p => p.umaban == result.umaban && p.user_id == userId);

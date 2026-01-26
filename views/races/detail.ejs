@@ -221,7 +221,6 @@
                         <th>枠</th>
                         <th>馬番</th>
                         <th>馬名</th>
-                        <th>厩舎</th>
                         <th>馬体重</th>
                         <% 
                         // ユーザー一覧を取得（予想を入力したユーザー）
@@ -234,7 +233,7 @@
                         });
                         %>
                         <% uniqueUsers.forEach(userId => { %>
-                            <th style="background: #667eea; color: white; font-weight: bold; min-width: 50px;"><%= userMap[userId] %></th>
+                            <th style="min-width: 50px;"><%= userMap[userId] %></th>
                         <% }); %>
                     </tr>
                 </thead>
@@ -251,7 +250,6 @@
                                 <strong><%= horse.horse_name %></strong>
                                 <div class="horse-details"><%= horse.age_sex %> <%= horse.jockey %> <%= horse.weight_load %>kg</div>
                             </td>
-                            <td><%= horse.stable %></td>
                             <td><%= horse.horse_weight || '-' %></td>
                             <% uniqueUsers.forEach(userId => { %>
                                 <% 

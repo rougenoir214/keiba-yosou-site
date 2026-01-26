@@ -21,99 +21,118 @@
     border-spacing: 0;
   }
 
-  /* 固定列のスタイル */
-  .table-scroll-wrapper table thead th:nth-child(1),
-  .table-scroll-wrapper table thead th:nth-child(2),
-  .table-scroll-wrapper table thead th:nth-child(3),
-  .table-scroll-wrapper table thead th:nth-child(4),
-  .table-scroll-wrapper table thead th:nth-child(5),
-  .table-scroll-wrapper table tbody td:nth-child(1),
-  .table-scroll-wrapper table tbody td:nth-child(2),
-  .table-scroll-wrapper table tbody td:nth-child(3),
-  .table-scroll-wrapper table tbody td:nth-child(4),
-  .table-scroll-wrapper table tbody td:nth-child(5) {
+  /* 出馬表：4列固定（枠、馬番、馬名、馬体重） */
+  .shutuba-table .table-scroll-wrapper table thead th:nth-child(1),
+  .shutuba-table .table-scroll-wrapper table thead th:nth-child(2),
+  .shutuba-table .table-scroll-wrapper table thead th:nth-child(3),
+  .shutuba-table .table-scroll-wrapper table thead th:nth-child(4),
+  .shutuba-table .table-scroll-wrapper table tbody td:nth-child(1),
+  .shutuba-table .table-scroll-wrapper table tbody td:nth-child(2),
+  .shutuba-table .table-scroll-wrapper table tbody td:nth-child(3),
+  .shutuba-table .table-scroll-wrapper table tbody td:nth-child(4) {
     position: sticky;
     background: white;
     z-index: 2;
   }
 
-  /* 各列の位置 */
-  .table-scroll-wrapper table thead th:nth-child(1),
-  .table-scroll-wrapper table tbody td:nth-child(1) {
+  /* 出馬表：各列の位置 */
+  .shutuba-table .table-scroll-wrapper table thead th:nth-child(1),
+  .shutuba-table .table-scroll-wrapper table tbody td:nth-child(1) {
     left: 0;
     min-width: 40px;
   }
 
-  .table-scroll-wrapper table thead th:nth-child(2),
-  .table-scroll-wrapper table tbody td:nth-child(2) {
+  .shutuba-table .table-scroll-wrapper table thead th:nth-child(2),
+  .shutuba-table .table-scroll-wrapper table tbody td:nth-child(2) {
     left: 40px;
     min-width: 40px;
   }
 
-  .table-scroll-wrapper table thead th:nth-child(3),
-  .table-scroll-wrapper table tbody td:nth-child(3) {
+  .shutuba-table .table-scroll-wrapper table thead th:nth-child(3),
+  .shutuba-table .table-scroll-wrapper table tbody td:nth-child(3) {
     left: 80px;
-    min-width: 100px;
-    max-width: 120px;
+    min-width: 120px;
+    max-width: 150px;
   }
 
-  .table-scroll-wrapper table thead th:nth-child(4),
-  .table-scroll-wrapper table tbody td:nth-child(4) {
-    left: 180px;
-    min-width: 60px;
-    max-width: 80px;
-  }
-
-  .table-scroll-wrapper table thead th:nth-child(5),
-  .table-scroll-wrapper table tbody td:nth-child(5) {
-    left: 240px;
+  .shutuba-table .table-scroll-wrapper table thead th:nth-child(4),
+  .shutuba-table .table-scroll-wrapper table tbody td:nth-child(4) {
+    left: 200px;
     min-width: 60px;
   }
 
-  /* theadの背景色を保持 */
-  .table-scroll-wrapper table thead th {
-    background: #f0f0f0 !important;
+  /* 出馬表：右側の境界線 */
+  .shutuba-table .table-scroll-wrapper table thead th:nth-child(4),
+  .shutuba-table .table-scroll-wrapper table tbody td:nth-child(4) {
+    border-right: 2px solid #ddd;
   }
 
-  /* 1-3着の行の背景色を保持 */
+  /* レース結果：3列固定（着順、馬番、馬名） */
+  .section .table-scroll-wrapper table thead th:nth-child(1),
+  .section .table-scroll-wrapper table thead th:nth-child(2),
+  .section .table-scroll-wrapper table thead th:nth-child(3),
+  .section .table-scroll-wrapper table tbody td:nth-child(1),
+  .section .table-scroll-wrapper table tbody td:nth-child(2),
+  .section .table-scroll-wrapper table tbody td:nth-child(3) {
+    position: sticky;
+    background: white;
+    z-index: 2;
+  }
+
+  /* レース結果：各列の位置 */
+  .section .table-scroll-wrapper table thead th:nth-child(1),
+  .section .table-scroll-wrapper table tbody td:nth-child(1) {
+    left: 0;
+    min-width: 50px;
+  }
+
+  .section .table-scroll-wrapper table thead th:nth-child(2),
+  .section .table-scroll-wrapper table tbody td:nth-child(2) {
+    left: 50px;
+    min-width: 50px;
+  }
+
+  .section .table-scroll-wrapper table thead th:nth-child(3),
+  .section .table-scroll-wrapper table tbody td:nth-child(3) {
+    left: 100px;
+    min-width: 140px;
+    max-width: 160px;
+  }
+
+  /* レース結果：右側の境界線 */
+  .section .table-scroll-wrapper table thead th:nth-child(3),
+  .section .table-scroll-wrapper table tbody td:nth-child(3) {
+    border-right: 2px solid #ddd;
+  }
+
+  /* 1-3着の背景色を保持（レース結果の色に統一） */
   .table-scroll-wrapper table tbody tr.rank-1 td:nth-child(1),
   .table-scroll-wrapper table tbody tr.rank-1 td:nth-child(2),
   .table-scroll-wrapper table tbody tr.rank-1 td:nth-child(3),
-  .table-scroll-wrapper table tbody tr.rank-1 td:nth-child(4),
-  .table-scroll-wrapper table tbody tr.rank-1 td:nth-child(5) {
+  .table-scroll-wrapper table tbody tr.rank-1 td:nth-child(4) {
     background: #fff9c4 !important;
   }
 
   .table-scroll-wrapper table tbody tr.rank-2 td:nth-child(1),
   .table-scroll-wrapper table tbody tr.rank-2 td:nth-child(2),
   .table-scroll-wrapper table tbody tr.rank-2 td:nth-child(3),
-  .table-scroll-wrapper table tbody tr.rank-2 td:nth-child(4),
-  .table-scroll-wrapper table tbody tr.rank-2 td:nth-child(5) {
+  .table-scroll-wrapper table tbody tr.rank-2 td:nth-child(4) {
     background: #f0f0f0 !important;
   }
 
   .table-scroll-wrapper table tbody tr.rank-3 td:nth-child(1),
   .table-scroll-wrapper table tbody tr.rank-3 td:nth-child(2),
   .table-scroll-wrapper table tbody tr.rank-3 td:nth-child(3),
-  .table-scroll-wrapper table tbody tr.rank-3 td:nth-child(4),
-  .table-scroll-wrapper table tbody tr.rank-3 td:nth-child(5) {
+  .table-scroll-wrapper table tbody tr.rank-3 td:nth-child(4) {
     background: #ffe0b2 !important;
   }
 
-  /* 右側の境界線 */
-  .table-scroll-wrapper table thead th:nth-child(5),
-  .table-scroll-wrapper table tbody td:nth-child(5) {
-    border-right: 2px solid #667eea;
-  }
-
   /* 予想印欄のスタイル */
-  .table-scroll-wrapper table thead th:nth-child(n+6) {
-    background: #667eea !important;
-    color: white !important;
+  .table-scroll-wrapper table thead th:nth-child(n+5) {
     min-width: 50px;
   }
 
-  .table-scroll-wrapper table tbody td:nth-child(n+6) {
+  .table-scroll-wrapper table tbody td:nth-child(n+5) {
     min-width: 50px;
   }
 
