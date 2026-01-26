@@ -1,5 +1,10 @@
 /* レース結果・出馬表の横スクロール対応 */
 
+/* 全画面：ヘッダー背景色 */
+.table-scroll-wrapper table thead th {
+  background: #f5f5f5 !important;
+}
+
 /* テーブルラッパー */
 .table-scroll-wrapper {
   overflow-x: auto;
@@ -21,6 +26,11 @@
     border-spacing: 0;
   }
 
+  /* ヘッダー背景色 */
+  .table-scroll-wrapper table thead th {
+    background: #f5f5f5 !important;
+  }
+
   /* 出馬表：4列固定（枠、馬番、馬名、馬体重） */
   .shutuba-table .table-scroll-wrapper table thead th:nth-child(1),
   .shutuba-table .table-scroll-wrapper table thead th:nth-child(2),
@@ -33,6 +43,14 @@
     position: sticky;
     background: white;
     z-index: 2;
+  }
+
+  /* 出馬表：ヘッダー行の背景色を保持 */
+  .shutuba-table .table-scroll-wrapper table thead th:nth-child(1),
+  .shutuba-table .table-scroll-wrapper table thead th:nth-child(2),
+  .shutuba-table .table-scroll-wrapper table thead th:nth-child(3),
+  .shutuba-table .table-scroll-wrapper table thead th:nth-child(4) {
+    background: #f5f5f5 !important;
   }
 
   /* 出馬表：各列の位置 */
@@ -79,24 +97,33 @@
     z-index: 2;
   }
 
-  /* レース結果：各列の位置 */
+  /* レース結果：ヘッダー行の背景色を保持 */
+  .section .table-scroll-wrapper table thead th:nth-child(1),
+  .section .table-scroll-wrapper table thead th:nth-child(2),
+  .section .table-scroll-wrapper table thead th:nth-child(3) {
+    background: #f5f5f5 !important;
+  }
+
+  /* レース結果：各列の位置（幅を狭く調整） */
   .section .table-scroll-wrapper table thead th:nth-child(1),
   .section .table-scroll-wrapper table tbody td:nth-child(1) {
     left: 0;
-    min-width: 50px;
+    min-width: 40px;
+    max-width: 40px;
   }
 
   .section .table-scroll-wrapper table thead th:nth-child(2),
   .section .table-scroll-wrapper table tbody td:nth-child(2) {
-    left: 50px;
-    min-width: 50px;
+    left: 40px;
+    min-width: 40px;
+    max-width: 40px;
   }
 
   .section .table-scroll-wrapper table thead th:nth-child(3),
   .section .table-scroll-wrapper table tbody td:nth-child(3) {
-    left: 100px;
-    min-width: 140px;
-    max-width: 160px;
+    left: 80px;
+    min-width: 100px;
+    max-width: 110px;
   }
 
   /* レース結果：右側の境界線 */
