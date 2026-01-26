@@ -6,6 +6,7 @@
 <title>レース結果 - <%= race.race_name %></title>
 <%- include('../pwa_head') %>
 <link rel="stylesheet" href="/css/betting-ticket-styles.css">
+<link rel="stylesheet" href="/css/table-scroll.css">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); background-attachment: fixed; min-height: 100vh; padding: 20px; }
@@ -83,6 +84,7 @@ predictions.forEach(p => {
     }
 });
 %>
+<div class="table-scroll-wrapper">
 <table>
 <thead>
 <tr>
@@ -123,6 +125,7 @@ if (result.rank) {
 <% }); %>
 </tbody>
 </table>
+</div>
 <% } %>
 </div>
 <div class="section">
@@ -510,6 +513,18 @@ async function deleteMyBets() {
         alert('エラーが発生しました: ' + error.message);
     }
 }
+
+// テーブルスクロールインジケーター
+document.addEventListener('DOMContentLoaded', function() {
+    const wrapper = document.querySelector('.table-scroll-wrapper');
+    if (wrapper) {
+        wrapper.addEventListener('scroll', function() {
+            if (this.scrollLeft > 10) {
+                this.classList.add('scrolled');
+            }
+        });
+    }
+});
 </script>
 </body>
 </html>

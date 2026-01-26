@@ -1,0 +1,146 @@
+/* レース結果・出馬表の横スクロール対応 */
+
+/* テーブルラッパー */
+.table-scroll-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  position: relative;
+}
+
+/* PC表示では横スクロール不要 */
+@media (min-width: 769px) {
+  .table-scroll-wrapper {
+    overflow-x: visible;
+  }
+}
+
+/* スマホ表示：左側の列を固定 */
+@media (max-width: 768px) {
+  .table-scroll-wrapper table {
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+
+  /* 固定列のスタイル */
+  .table-scroll-wrapper table thead th:nth-child(1),
+  .table-scroll-wrapper table thead th:nth-child(2),
+  .table-scroll-wrapper table thead th:nth-child(3),
+  .table-scroll-wrapper table thead th:nth-child(4),
+  .table-scroll-wrapper table thead th:nth-child(5),
+  .table-scroll-wrapper table tbody td:nth-child(1),
+  .table-scroll-wrapper table tbody td:nth-child(2),
+  .table-scroll-wrapper table tbody td:nth-child(3),
+  .table-scroll-wrapper table tbody td:nth-child(4),
+  .table-scroll-wrapper table tbody td:nth-child(5) {
+    position: sticky;
+    background: white;
+    z-index: 2;
+  }
+
+  /* 各列の位置 */
+  .table-scroll-wrapper table thead th:nth-child(1),
+  .table-scroll-wrapper table tbody td:nth-child(1) {
+    left: 0;
+    min-width: 40px;
+  }
+
+  .table-scroll-wrapper table thead th:nth-child(2),
+  .table-scroll-wrapper table tbody td:nth-child(2) {
+    left: 40px;
+    min-width: 40px;
+  }
+
+  .table-scroll-wrapper table thead th:nth-child(3),
+  .table-scroll-wrapper table tbody td:nth-child(3) {
+    left: 80px;
+    min-width: 100px;
+    max-width: 120px;
+  }
+
+  .table-scroll-wrapper table thead th:nth-child(4),
+  .table-scroll-wrapper table tbody td:nth-child(4) {
+    left: 180px;
+    min-width: 60px;
+    max-width: 80px;
+  }
+
+  .table-scroll-wrapper table thead th:nth-child(5),
+  .table-scroll-wrapper table tbody td:nth-child(5) {
+    left: 240px;
+    min-width: 60px;
+  }
+
+  /* theadの背景色を保持 */
+  .table-scroll-wrapper table thead th {
+    background: #f0f0f0 !important;
+  }
+
+  /* 1-3着の行の背景色を保持 */
+  .table-scroll-wrapper table tbody tr.rank-1 td:nth-child(1),
+  .table-scroll-wrapper table tbody tr.rank-1 td:nth-child(2),
+  .table-scroll-wrapper table tbody tr.rank-1 td:nth-child(3),
+  .table-scroll-wrapper table tbody tr.rank-1 td:nth-child(4),
+  .table-scroll-wrapper table tbody tr.rank-1 td:nth-child(5) {
+    background: #fff9c4 !important;
+  }
+
+  .table-scroll-wrapper table tbody tr.rank-2 td:nth-child(1),
+  .table-scroll-wrapper table tbody tr.rank-2 td:nth-child(2),
+  .table-scroll-wrapper table tbody tr.rank-2 td:nth-child(3),
+  .table-scroll-wrapper table tbody tr.rank-2 td:nth-child(4),
+  .table-scroll-wrapper table tbody tr.rank-2 td:nth-child(5) {
+    background: #f0f0f0 !important;
+  }
+
+  .table-scroll-wrapper table tbody tr.rank-3 td:nth-child(1),
+  .table-scroll-wrapper table tbody tr.rank-3 td:nth-child(2),
+  .table-scroll-wrapper table tbody tr.rank-3 td:nth-child(3),
+  .table-scroll-wrapper table tbody tr.rank-3 td:nth-child(4),
+  .table-scroll-wrapper table tbody tr.rank-3 td:nth-child(5) {
+    background: #ffe0b2 !important;
+  }
+
+  /* 右側の境界線 */
+  .table-scroll-wrapper table thead th:nth-child(5),
+  .table-scroll-wrapper table tbody td:nth-child(5) {
+    border-right: 2px solid #667eea;
+  }
+
+  /* 予想印欄のスタイル */
+  .table-scroll-wrapper table thead th:nth-child(n+6) {
+    background: #667eea !important;
+    color: white !important;
+    min-width: 50px;
+  }
+
+  .table-scroll-wrapper table tbody td:nth-child(n+6) {
+    min-width: 50px;
+  }
+
+  /* スクロールインジケーター */
+  .table-scroll-wrapper::after {
+    content: '→ スクロール';
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    background: rgba(102, 126, 234, 0.9);
+    color: white;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    pointer-events: none;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+  }
+
+  /* スクロールした後はインジケーターを非表示 */
+  .table-scroll-wrapper.scrolled::after {
+    display: none;
+  }
+}

@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><%= race.race_name %> - 出馬表</title>
     <%- include('../pwa_head') %>
+    <link rel="stylesheet" href="/css/table-scroll.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -213,6 +214,7 @@
         </div>
 
         <div class="shutuba-table">
+            <div class="table-scroll-wrapper">
             <table>
                 <thead>
                     <tr>
@@ -263,6 +265,7 @@
                     <% }); %>
                 </tbody>
             </table>
+            </div>
         </div>
 
         <!-- 予想コメント表示 -->
@@ -476,6 +479,18 @@ async function deleteSingleBet(betId) {
         alert('エラーが発生しました: ' + error.message);
     }
 }
+
+// テーブルスクロールインジケーター
+document.addEventListener('DOMContentLoaded', function() {
+    const wrapper = document.querySelector('.table-scroll-wrapper');
+    if (wrapper) {
+        wrapper.addEventListener('scroll', function() {
+            if (this.scrollLeft > 10) {
+                this.classList.add('scrolled');
+            }
+        });
+    }
+});
 </script>
 
 </body>
