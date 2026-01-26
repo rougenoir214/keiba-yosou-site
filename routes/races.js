@@ -304,7 +304,7 @@ router.get('/:race_id/result', async (req, res) => {
     
     // 全頭を表示するため、horsesテーブルをベースにLEFT JOIN resultsテーブル
     const resultsResult = await pool.query(
-      `SELECT h.umaban, h.horse_name, h.jockey, h.waku, r.rank, r.result_time
+      `SELECT h.umaban, h.horse_name, h.jockey, h.waku, r.rank, r.result_time, r.margin
        FROM horses h
        LEFT JOIN results r ON h.race_id = r.race_id AND h.umaban = r.umaban
        WHERE h.race_id = $1
