@@ -3,15 +3,11 @@ require('dotenv').config();
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { 
-    rejectUnauthorized: true, // SSL検証を有効化（試験的）
-    sslmode: 'require'
-  } : false,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
   client_encoding: 'UTF8',
-  connectionTimeoutMillis: 30000, // 接続タイムアウト: 30秒（長め）
-  idleTimeoutMillis: 10000, // アイドルタイムアウト: 10秒（短く、すぐ解放）
-  max: 2, // 最大接続数: 2（極小）
-  min: 0, // 最小接続数: 0（使わないときは全解放）
+  connectionTimeoutMillis: 10000, // 接続タイムアウト: 10秒（元の設定）
+  idleTimeoutMillis: 30000, // アイドルタイムアウト: 30秒（元の設定）
+  max: 20, // 最大接続数: 20（元の設定）
   statement_timeout: 30000, // クエリタイムアウト: 30秒
   // Keep-Alive設定
   keepAlive: true,
