@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { queryWithRetry } = require('../db/connection');
 const pool = require('../db/connection');
 
 function requireAuth(req, res, next) {
@@ -148,15 +149,15 @@ function generateCombinations(horses, betType, buyMethod, axisHorses, partnerHor
 
 router.get('/:race_id', requireAuth, async (req, res) => {
   try {
-    const raceResult = await pool.query('SELECT * FROM races WHERE race_id = $1', [req.params.race_id]);
-    const horsesResult = await pool.query('SELECT * FROM horses WHERE race_id = $1 ORDER BY umaban', [req.params.race_id]);
+    const raceResult = await queryWithRetry('SELECT * FROM races WHERE race_id = $1', [req.params.race_id]);
+    const horsesResult = await queryWithRetry('SELECT * FROM horses WHERE race_id = $1 ORDER BY umaban', [req.params.race_id]);
     
     if (raceResult.rows.length === 0) {
       return res.status(404).send('レースが見つかりません');
     }
     
-    const predictionsResult = await pool.query('SELECT * FROM predictions WHERE user_id = $1 AND race_id = $2', [req.session.user.id, req.params.race_id]);
-    const betsResult = await pool.query('SELECT * FROM bets WHERE user_id = $1 AND race_id = $2 ORDER BY id DESC', [req.session.user.id, req.params.race_id]);
+    const predictionsResult = await queryWithRetry('SELECT * FROM predictions WHERE user_id = $1 AND race_id = $2', [req.session.user.id, req.params.race_id]);
+    const betsResult = await queryWithRetry('SELECT * FROM bets WHERE user_id = $1 AND race_id = $2 ORDER BY id DESC', [req.session.user.id, req.params.race_id]);
     
     res.render('predictions/input', {
       race: raceResult.rows[0],
@@ -175,7 +176,7 @@ router.post('/:race_id/marks', requireAuth, async (req, res) => {
   const { marks, comment } = req.body;
   try {
     // レース情報を取得
-    const raceInfo = await pool.query('SELECT race_date, race_time FROM races WHERE race_id = $1', [req.params.race_id]);
+    const raceInfo = await queryWithRetry('SELECT race_date, race_time FROM races WHERE race_id = $1', [req.params.race_id]);
     
     if (raceInfo.rows.length === 0) {
       return res.status(404).json({ error: 'レースが見つかりません' });
@@ -204,7 +205,7 @@ router.post('/:race_id/marks', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'レース開始時刻を過ぎているため、予想を入力できません' });
     }
     
-    await pool.query('DELETE FROM predictions WHERE user_id = $1 AND race_id = $2', [req.session.user.id, req.params.race_id]);
+    await queryWithRetry('DELETE FROM predictions WHERE user_id = $1 AND race_id = $2', [req.session.user.id, req.params.race_id]);
     
     // コメントの文字数チェック（500文字まで）
     const commentText = comment ? comment.substring(0, 500) : null;
@@ -212,7 +213,7 @@ router.post('/:race_id/marks', requireAuth, async (req, res) => {
     for (const [umaban, mark] of Object.entries(marks)) {
       if (mark) {
         // 各予想にコメントを保存（全ての行に同じコメント）
-        await pool.query('INSERT INTO predictions (user_id, race_id, umaban, mark, comment) VALUES ($1, $2, $3, $4, $5)', [req.session.user.id, req.params.race_id, parseInt(umaban), mark, commentText]);
+        await queryWithRetry('INSERT INTO predictions (user_id, race_id, umaban, mark, comment) VALUES ($1, $2, $3, $4, $5)', [req.session.user.id, req.params.race_id, parseInt(umaban), mark, commentText]);
       }
     }
     res.json({ success: true });
@@ -227,7 +228,7 @@ router.post('/:race_id/bets', requireAuth, async (req, res) => {
   
   try {
     // レース情報を取得
-    const raceInfo = await pool.query('SELECT race_date, race_time FROM races WHERE race_id = $1', [req.params.race_id]);
+    const raceInfo = await queryWithRetry('SELECT race_date, race_time FROM races WHERE race_id = $1', [req.params.race_id]);
     
     if (raceInfo.rows.length === 0) {
       return res.status(404).json({ error: 'レースが見つかりません' });
@@ -256,7 +257,7 @@ router.post('/:race_id/bets', requireAuth, async (req, res) => {
       return res.status(400).json({ error: 'レース開始時刻を過ぎているため、馬券を購入できません' });
     }
     
-    const existingBets = await pool.query('SELECT SUM(amount) as total FROM bets WHERE user_id = $1 AND race_id = $2', [req.session.user.id, req.params.race_id]);
+    const existingBets = await queryWithRetry('SELECT SUM(amount) as total FROM bets WHERE user_id = $1 AND race_id = $2', [req.session.user.id, req.params.race_id]);
     const currentTotal = parseInt(existingBets.rows[0].total) || 0;
     
     // bet_formatを決定
@@ -298,14 +299,14 @@ router.post('/:race_id/bets', requireAuth, async (req, res) => {
       // ボックスの場合はhorsesをそのまま使用
       
       // 1件の馬券として登録（bet_countも保存）
-      await pool.query(
+      await queryWithRetry(
         'INSERT INTO bets (user_id, race_id, bet_type, horses, amount, bet_format, bet_count) VALUES ($1, $2, $3, $4, $5, $6, $7)',
         [req.session.user.id, req.params.race_id, bet_type, horsesString, totalCost, bet_format, combinations.length]
       );
     } else {
       // 単式の場合は従来通り個別に登録
       for (const combo of combinations) {
-        await pool.query(
+        await queryWithRetry(
           'INSERT INTO bets (user_id, race_id, bet_type, horses, amount, bet_format, bet_count) VALUES ($1, $2, $3, $4, $5, $6, $7)',
           [req.session.user.id, req.params.race_id, bet_type, combo, parseInt(amount), 'single', 1]
         );
@@ -323,7 +324,7 @@ router.post('/:race_id/bets', requireAuth, async (req, res) => {
 router.post('/:race_id/auto-bet', requireAuth, async (req, res) => {
   try {
     // 現在の予想印を取得
-    const predictionsResult = await pool.query(
+    const predictionsResult = await queryWithRetry(
       'SELECT * FROM predictions WHERE user_id = $1 AND race_id = $2',
       [req.session.user.id, req.params.race_id]
     );
@@ -342,7 +343,7 @@ router.post('/:race_id/auto-bet', requireAuth, async (req, res) => {
     const markCount = horses.length;
     
     // 既存の馬券をチェック
-    const existingBets = await pool.query(
+    const existingBets = await queryWithRetry(
       'SELECT SUM(amount) as total FROM bets WHERE user_id = $1 AND race_id = $2',
       [req.session.user.id, req.params.race_id]
     );
@@ -449,7 +450,7 @@ router.post('/:race_id/auto-bet', requireAuth, async (req, res) => {
     
     // 馬券を一括登録
     for (const bet of betsToInsert) {
-      await pool.query(
+      await queryWithRetry(
         'INSERT INTO bets (user_id, race_id, bet_type, horses, amount, bet_format, bet_count) VALUES ($1, $2, $3, $4, $5, $6, $7)',
         [req.session.user.id, req.params.race_id, bet.bet_type, bet.horses, bet.amount, bet.bet_format || 'single', bet.bet_count]
       );
@@ -473,7 +474,7 @@ router.post('/:race_id/auto-bet', requireAuth, async (req, res) => {
 router.delete('/:race_id/bets/:bet_id', requireAuth, async (req, res) => {
   try {
     // レース情報を取得して時刻チェック
-    const raceInfo = await pool.query('SELECT race_date, race_time FROM races WHERE race_id = $1', [req.params.race_id]);
+    const raceInfo = await queryWithRetry('SELECT race_date, race_time FROM races WHERE race_id = $1', [req.params.race_id]);
     
     if (raceInfo.rows.length === 0) {
       return res.status(404).json({ error: 'レースが見つかりません' });
@@ -492,10 +493,10 @@ router.delete('/:race_id/bets/:bet_id', requireAuth, async (req, res) => {
     }
     
     // 外部キー制約のため、payoutsから先に削除
-    await pool.query('DELETE FROM payouts WHERE bet_id = $1', [req.params.bet_id]);
+    await queryWithRetry('DELETE FROM payouts WHERE bet_id = $1', [req.params.bet_id]);
     
     // 次にbetsから削除
-    await pool.query('DELETE FROM bets WHERE id = $1 AND user_id = $2', [req.params.bet_id, req.session.user.id]);
+    await queryWithRetry('DELETE FROM bets WHERE id = $1 AND user_id = $2', [req.params.bet_id, req.session.user.id]);
     res.json({ success: true });
   } catch (error) {
     console.error(error);

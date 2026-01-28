@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../db/connection');
+const { queryWithRetry } = require('../db/connection');
 
 // ランキングページ
 router.get('/', async (req, res) => {
@@ -12,7 +12,7 @@ router.get('/', async (req, res) => {
     const rankingType = req.query.type || 'profit';
     
     // シーズン一覧を取得
-    const seasonsResult = await pool.query('SELECT * FROM seasons ORDER BY start_date DESC');
+    const seasonsResult = await queryWithRetry('SELECT * FROM seasons ORDER BY start_date DESC');
     
     let dateFilter = '';
     let params = [];
@@ -36,10 +36,10 @@ router.get('/', async (req, res) => {
       const selectedSeasonId = req.query.season_id || null;
       
       if (selectedSeasonId) {
-        const seasonResult = await pool.query('SELECT * FROM seasons WHERE id = $1', [selectedSeasonId]);
+        const seasonResult = await queryWithRetry('SELECT * FROM seasons WHERE id = $1', [selectedSeasonId]);
         selectedSeason = seasonResult.rows[0];
       } else {
-        const activeSeasonResult = await pool.query('SELECT * FROM seasons WHERE is_active = true LIMIT 1');
+        const activeSeasonResult = await queryWithRetry('SELECT * FROM seasons WHERE is_active = true LIMIT 1');
         selectedSeason = activeSeasonResult.rows[0];
       }
       
@@ -88,7 +88,7 @@ router.get('/', async (req, res) => {
       ORDER BY ${orderBy}
     `;
     
-    const rankingResult = await pool.query(rankingQuery, params);
+    const rankingResult = await queryWithRetry(rankingQuery, params);
     
     res.render('ranking/index', {
       mode: mode,

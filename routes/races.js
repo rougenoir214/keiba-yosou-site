@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const pool = require('../db/connection');
+const { queryWithRetry } = require('../db/connection');
 
 // ボックス・フォーメーション買いの組み合わせ生成
 function generateCombinationsForPayout(horses, betType, betFormat) {
@@ -113,7 +113,7 @@ function generateCombinationsForPayout(horses, betType, betFormat) {
 // レース一覧（直近2週間のみ）
 router.get('/', async (req, res) => {
   try {
-    const result = await pool.query(`
+    const result = await queryWithRetry(`
       SELECT r.*, COUNT(h.id) as horse_count 
       FROM races r 
       LEFT JOIN horses h ON r.race_id = h.race_id 
@@ -166,7 +166,7 @@ router.get('/', async (req, res) => {
 router.get('/archive', async (req, res) => {
   try {
     // シーズン一覧を取得
-    const seasonsResult = await pool.query('SELECT * FROM seasons ORDER BY start_date DESC');
+    const seasonsResult = await queryWithRetry('SELECT * FROM seasons ORDER BY start_date DESC');
     
     // 選択されたシーズンまたは期間
     const seasonId = req.query.season_id;
@@ -180,7 +180,7 @@ router.get('/archive', async (req, res) => {
     
     if (seasonId) {
       // シーズン選択の場合
-      const seasonResult = await pool.query('SELECT * FROM seasons WHERE id = $1', [seasonId]);
+      const seasonResult = await queryWithRetry('SELECT * FROM seasons WHERE id = $1', [seasonId]);
       selectedSeason = seasonResult.rows[0];
       whereClause = 'WHERE r.race_date BETWEEN $1 AND $2';
       params = [selectedSeason.start_date, selectedSeason.end_date];
@@ -201,7 +201,7 @@ router.get('/archive', async (req, res) => {
       ORDER BY r.race_date DESC, r.race_time DESC
     `;
     
-    const result = await pool.query(query, params);
+    const result = await queryWithRetry(query, params);
     
     // 各レースの状態を判定（日本時間で）
     const now = new Date();
@@ -249,18 +249,18 @@ router.get('/archive', async (req, res) => {
 // レース詳細
 router.get('/:race_id', async (req, res) => {
   try {
-    const raceResult = await pool.query(
+    const raceResult = await queryWithRetry(
       'SELECT * FROM races WHERE race_id = $1',
       [req.params.race_id]
     );
     
-    const horsesResult = await pool.query(
+    const horsesResult = await queryWithRetry(
       'SELECT * FROM horses WHERE race_id = $1 ORDER BY umaban',
       [req.params.race_id]
     );
     
     // 全ユーザーの馬券購入状況を取得
-    const betsResult = await pool.query(
+    const betsResult = await queryWithRetry(
       `SELECT b.*, u.display_name 
        FROM bets b 
        JOIN users u ON b.user_id = u.id 
@@ -270,7 +270,7 @@ router.get('/:race_id', async (req, res) => {
     );
     
     // 全ユーザーの予想（印）を取得
-    const predictionsResult = await pool.query(
+    const predictionsResult = await queryWithRetry(
       `SELECT p.*, u.display_name, u.username
        FROM predictions p
        JOIN users u ON p.user_id = u.id
@@ -300,10 +300,10 @@ router.get('/:race_id', async (req, res) => {
 // レース結果表示
 router.get('/:race_id/result', async (req, res) => {
   try {
-    const raceResult = await pool.query('SELECT * FROM races WHERE race_id = $1', [req.params.race_id]);
+    const raceResult = await queryWithRetry('SELECT * FROM races WHERE race_id = $1', [req.params.race_id]);
     
     // 全頭を表示するため、horsesテーブルをベースにLEFT JOIN resultsテーブル
-    const resultsResult = await pool.query(
+    const resultsResult = await queryWithRetry(
       `SELECT h.umaban, h.horse_name, h.jockey, h.waku, r.rank, r.result_time, r.margin
        FROM horses h
        LEFT JOIN results r ON h.race_id = r.race_id AND h.umaban = r.umaban
@@ -315,10 +315,10 @@ router.get('/:race_id/result', async (req, res) => {
       [req.params.race_id]
     );
     
-    const payoutsResult = await pool.query('SELECT * FROM race_payouts WHERE race_id = $1 ORDER BY bet_type', [req.params.race_id]);
+    const payoutsResult = await queryWithRetry('SELECT * FROM race_payouts WHERE race_id = $1 ORDER BY bet_type', [req.params.race_id]);
     
     // 全ユーザーの馬券購入状況を取得
-    const betsResult = await pool.query(
+    const betsResult = await queryWithRetry(
       `SELECT b.*, u.display_name, p.payout_amount 
        FROM bets b 
        JOIN users u ON b.user_id = u.id 
@@ -329,7 +329,7 @@ router.get('/:race_id/result', async (req, res) => {
     );
     
     // 全ユーザーの予想（印）を取得
-    const predictionsResult = await pool.query(
+    const predictionsResult = await queryWithRetry(
       `SELECT p.*, u.display_name, u.username
        FROM predictions p
        JOIN users u ON p.user_id = u.id
@@ -339,7 +339,7 @@ router.get('/:race_id/result', async (req, res) => {
     );
     
     // 馬名データを取得（馬券表示用）
-    const horsesDataResult = await pool.query(
+    const horsesDataResult = await queryWithRetry(
       'SELECT umaban, horse_name FROM horses WHERE race_id = $1',
       [req.params.race_id]
     );
@@ -371,8 +371,8 @@ router.post('/:race_id/calculate-payouts', async (req, res) => {
     console.log('=== 配当計算開始 ===');
     console.log('レースID:', raceId);
     
-    const betsResult = await pool.query('SELECT * FROM bets WHERE race_id = $1', [raceId]);
-    const payoutsResult = await pool.query('SELECT * FROM race_payouts WHERE race_id = $1', [raceId]);
+    const betsResult = await queryWithRetry('SELECT * FROM bets WHERE race_id = $1', [raceId]);
+    const payoutsResult = await queryWithRetry('SELECT * FROM race_payouts WHERE race_id = $1', [raceId]);
     
     console.log('馬券数:', betsResult.rows.length);
     console.log('払戻金データ数:', payoutsResult.rows.length);
@@ -418,7 +418,7 @@ router.post('/:race_id/calculate-payouts', async (req, res) => {
           
           console.log(`  購入額: ${bet.amount}円 (${combinations.length}点 × ${perBetAmount}円), 払戻: ${hitPayout}円/100円, 配当: ${payoutAmount}円`);
           
-          await pool.query(
+          await queryWithRetry(
             `INSERT INTO payouts (bet_id, payout_amount) VALUES ($1, $2)
              ON CONFLICT (bet_id) DO UPDATE SET payout_amount = EXCLUDED.payout_amount, calculated_at = CURRENT_TIMESTAMP`,
             [bet.id, payoutAmount]
@@ -427,7 +427,7 @@ router.post('/:race_id/calculate-payouts', async (req, res) => {
           calculatedCount++;
         } else {
           console.log('  不的中');
-          await pool.query(
+          await queryWithRetry(
             `INSERT INTO payouts (bet_id, payout_amount) VALUES ($1, 0)
              ON CONFLICT (bet_id) DO UPDATE SET payout_amount = 0, calculated_at = CURRENT_TIMESTAMP`,
             [bet.id]
@@ -445,7 +445,7 @@ router.post('/:race_id/calculate-payouts', async (req, res) => {
           
           console.log(`  購入額: ${bet.amount}円, 払戻: ${payout}円/100円, 配当: ${payoutAmount}円`);
           
-          await pool.query(
+          await queryWithRetry(
             `INSERT INTO payouts (bet_id, payout_amount) VALUES ($1, $2)
              ON CONFLICT (bet_id) DO UPDATE SET payout_amount = EXCLUDED.payout_amount, calculated_at = CURRENT_TIMESTAMP`,
             [bet.id, payoutAmount]
@@ -453,7 +453,7 @@ router.post('/:race_id/calculate-payouts', async (req, res) => {
           
           calculatedCount++;
         } else {
-          await pool.query(
+          await queryWithRetry(
             `INSERT INTO payouts (bet_id, payout_amount) VALUES ($1, 0)
              ON CONFLICT (bet_id) DO UPDATE SET payout_amount = 0, calculated_at = CURRENT_TIMESTAMP`,
             [bet.id]
@@ -486,7 +486,7 @@ router.post('/:race_id/delete-my-bets', async (req, res) => {
     console.log(`馬券削除開始: race_id=${race_id}, user_id=${userId}`);
     
     // レース情報を取得して時刻チェック
-    const raceInfo = await pool.query('SELECT race_date, race_time FROM races WHERE race_id = $1', [race_id]);
+    const raceInfo = await queryWithRetry('SELECT race_date, race_time FROM races WHERE race_id = $1', [race_id]);
     
     if (raceInfo.rows.length === 0) {
       return res.status(404).send('レースが見つかりません');
@@ -511,7 +511,7 @@ router.post('/:race_id/delete-my-bets', async (req, res) => {
     }
     
     // このユーザーの馬券数を確認
-    const countResult = await pool.query(
+    const countResult = await queryWithRetry(
       'SELECT COUNT(*) as count FROM bets WHERE race_id = $1 AND user_id = $2',
       [race_id, userId]
     );
@@ -523,14 +523,14 @@ router.post('/:race_id/delete-my-bets', async (req, res) => {
     }
     
     // 1. 払い戻し情報を削除
-    await pool.query(
+    await queryWithRetry(
       'DELETE FROM payouts WHERE bet_id IN (SELECT id FROM bets WHERE race_id = $1 AND user_id = $2)',
       [race_id, userId]
     );
     console.log('✓ 払い戻し情報を削除');
     
     // 2. 馬券を削除
-    await pool.query(
+    await queryWithRetry(
       'DELETE FROM bets WHERE race_id = $1 AND user_id = $2',
       [race_id, userId]
     );
@@ -559,7 +559,7 @@ router.delete('/bets/:bet_id', async (req, res) => {
 
   try {
     // 馬券の所有者を確認
-    const betResult = await pool.query(
+    const betResult = await queryWithRetry(
       'SELECT * FROM bets WHERE id = $1',
       [bet_id]
     );
@@ -576,7 +576,7 @@ router.delete('/bets/:bet_id', async (req, res) => {
     }
 
     // レースの発走時刻を確認
-    const raceResult = await pool.query(
+    const raceResult = await queryWithRetry(
       'SELECT * FROM races WHERE race_id = $1',
       [bet.race_id]
     );
@@ -598,13 +598,13 @@ router.delete('/bets/:bet_id', async (req, res) => {
     }
 
     // 払い戻し情報を削除
-    await pool.query(
+    await queryWithRetry(
       'DELETE FROM payouts WHERE bet_id = $1',
       [bet_id]
     );
 
     // 馬券を削除
-    await pool.query(
+    await queryWithRetry(
       'DELETE FROM bets WHERE id = $1',
       [bet_id]
     );

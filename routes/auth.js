@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
+const { queryWithRetry } = require('../db/connection');
 const pool = require('../db/connection');
 
 // 新規登録ページ
@@ -14,7 +15,7 @@ router.post('/register', async (req, res) => {
   
   try {
     // ユーザー名の重複チェック
-    const existing = await pool.query(
+    const existing = await queryWithRetry(
       'SELECT id FROM users WHERE username = $1',
       [username]
     );
@@ -29,7 +30,7 @@ router.post('/register', async (req, res) => {
     const password_hash = await bcrypt.hash(password, 10);
     
     // ユーザー登録
-    const result = await pool.query(
+    const result = await queryWithRetry(
       'INSERT INTO users (username, password_hash, display_name) VALUES ($1, $2, $3) RETURNING id, is_admin',
       [username, password_hash, display_name]
     );
@@ -61,7 +62,7 @@ router.post('/login', async (req, res) => {
   const { username, password } = req.body;
   
   try {
-    const result = await pool.query(
+    const result = await queryWithRetry(
       'SELECT * FROM users WHERE username = $1',
       [username]
     );
@@ -127,7 +128,7 @@ router.post('/settings/update', async (req, res) => {
 
   try {
     // 現在のユーザー情報を取得してパスワード確認
-    const userResult = await pool.query(
+    const userResult = await queryWithRetry(
       'SELECT * FROM users WHERE id = $1',
       [userId]
     );
@@ -172,7 +173,7 @@ router.post('/settings/update', async (req, res) => {
 
     // ユーザー名が変更されている場合、重複チェック
     if (username !== user.username) {
-      const duplicateCheck = await pool.query(
+      const duplicateCheck = await queryWithRetry(
         'SELECT id FROM users WHERE username = $1 AND id != $2',
         [username, userId]
       );
@@ -189,13 +190,13 @@ router.post('/settings/update', async (req, res) => {
     // パスワードも変更する場合
     if (new_password) {
       const new_password_hash = await bcrypt.hash(new_password, 10);
-      await pool.query(
+      await queryWithRetry(
         'UPDATE users SET username = $1, display_name = $2, password_hash = $3 WHERE id = $4',
         [username, display_name, new_password_hash, userId]
       );
     } else {
       // パスワードは変更しない
-      await pool.query(
+      await queryWithRetry(
         'UPDATE users SET username = $1, display_name = $2 WHERE id = $3',
         [username, display_name, userId]
       );

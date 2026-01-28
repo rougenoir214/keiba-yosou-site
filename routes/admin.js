@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 const csv = require('csv-parser');
 const fs = require('fs');
+const { queryWithRetry } = require('../db/connection');
 const pool = require('../db/connection');
 
 // アップロード設定
@@ -91,7 +92,7 @@ router.post('/import', requireAdmin, upload.single('csvfile'), async (req, res) 
           console.log('取得した競馬場:', venue);
           console.log('=======================');
           
-          await pool.query(
+          await queryWithRetry(
             `INSERT INTO races (race_id, race_name, race_date, race_time, venue) 
              VALUES ($1, $2, $3, $4, $5) 
              ON CONFLICT (race_id) DO UPDATE SET
@@ -117,7 +118,7 @@ router.post('/import', requireAdmin, upload.single('csvfile'), async (req, res) 
               continue; // スキップ
             }
             
-            await pool.query(
+            await queryWithRetry(
               `INSERT INTO horses (race_id, waku, umaban, horse_name, age_sex, weight_load, jockey, stable, horse_weight)
                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
                ON CONFLICT (race_id, umaban) DO UPDATE SET
@@ -158,7 +159,7 @@ module.exports = router;
 // レース時刻を一括更新（15:00 → 23:59）
 router.post('/update-race-times', async (req, res) => {
   try {
-    const result = await pool.query(`
+    const result = await queryWithRetry(`
       UPDATE races 
       SET race_time = '23:59' 
       WHERE race_time = '15:00'
@@ -388,10 +389,10 @@ router.post('/fetch-result/:race_id', requireAdmin, async (req, res) => {
     console.log('取得した払い戻し:', payouts.length, '件');
     
     // データベースに保存（既存データは削除）
-    await pool.query('DELETE FROM results WHERE race_id = $1', [race_id]);
+    await queryWithRetry('DELETE FROM results WHERE race_id = $1', [race_id]);
     
     for (const result of uniqueResults) {
-      await pool.query(
+      await queryWithRetry(
         'INSERT INTO results (race_id, umaban, rank, result_time, margin) VALUES ($1, $2, $3, $4, $5) ON CONFLICT (race_id, umaban) DO UPDATE SET rank = EXCLUDED.rank, result_time = EXCLUDED.result_time, margin = EXCLUDED.margin',
         [race_id, result.umaban, result.rank, result.result_time, result.margin]
       );
@@ -399,10 +400,10 @@ router.post('/fetch-result/:race_id', requireAdmin, async (req, res) => {
     
     // 払い戻し情報を保存（既存データは削除）
     if (payouts.length > 0) {
-      await pool.query('DELETE FROM race_payouts WHERE race_id = $1', [race_id]);
+      await queryWithRetry('DELETE FROM race_payouts WHERE race_id = $1', [race_id]);
       
       for (const payout of payouts) {
-        await pool.query(
+        await queryWithRetry(
           'INSERT INTO race_payouts (race_id, bet_type, combination, payout) VALUES ($1, $2, $3, $4) ON CONFLICT (race_id, bet_type, combination) DO UPDATE SET payout = EXCLUDED.payout',
           [race_id, payout.bet_type, payout.combination, payout.payout]
         );
@@ -636,7 +637,7 @@ router.post('/fetch-race/:race_id', requireAdmin, async (req, res) => {
     
     // データベースに保存
     // レース情報を保存
-    await pool.query(
+    await queryWithRetry(
       `INSERT INTO races (race_id, race_name, race_date, race_time, venue) 
        VALUES ($1, $2, $3, $4, $5) 
        ON CONFLICT (race_id) DO UPDATE SET
@@ -648,13 +649,13 @@ router.post('/fetch-race/:race_id', requireAdmin, async (req, res) => {
     );
     
     // 既存の出走馬データを削除
-    await pool.query('DELETE FROM horses WHERE race_id = $1', [race_id]);
+    await queryWithRetry('DELETE FROM horses WHERE race_id = $1', [race_id]);
     
     // 出走馬を保存
     for (const horse of horses) {
       const weightLoad = parseFloat(horse.weight) || null;
       
-      await pool.query(
+      await queryWithRetry(
         `INSERT INTO horses (race_id, waku, umaban, horse_name, age_sex, weight_load, jockey, stable, horse_weight) 
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
         [
@@ -695,31 +696,31 @@ router.post('/delete-race/:race_id', requireAdmin, async (req, res) => {
     
     // 関連データを順番に削除
     // 1. 払い戻し情報
-    await pool.query('DELETE FROM payouts WHERE bet_id IN (SELECT id FROM bets WHERE race_id = $1)', [race_id]);
+    await queryWithRetry('DELETE FROM payouts WHERE bet_id IN (SELECT id FROM bets WHERE race_id = $1)', [race_id]);
     console.log('✓ 払い戻し情報を削除');
     
     // 2. 馬券購入情報
-    await pool.query('DELETE FROM bets WHERE race_id = $1', [race_id]);
+    await queryWithRetry('DELETE FROM bets WHERE race_id = $1', [race_id]);
     console.log('✓ 馬券購入情報を削除');
     
     // 3. 予想情報
-    await pool.query('DELETE FROM predictions WHERE race_id = $1', [race_id]);
+    await queryWithRetry('DELETE FROM predictions WHERE race_id = $1', [race_id]);
     console.log('✓ 予想情報を削除');
     
     // 4. レース結果
-    await pool.query('DELETE FROM results WHERE race_id = $1', [race_id]);
+    await queryWithRetry('DELETE FROM results WHERE race_id = $1', [race_id]);
     console.log('✓ レース結果を削除');
     
     // 5. レース払戻金
-    await pool.query('DELETE FROM race_payouts WHERE race_id = $1', [race_id]);
+    await queryWithRetry('DELETE FROM race_payouts WHERE race_id = $1', [race_id]);
     console.log('✓ レース払戻金を削除');
     
     // 6. 出走馬情報
-    await pool.query('DELETE FROM horses WHERE race_id = $1', [race_id]);
+    await queryWithRetry('DELETE FROM horses WHERE race_id = $1', [race_id]);
     console.log('✓ 出走馬情報を削除');
     
     // 7. レース情報
-    const result = await pool.query('DELETE FROM races WHERE race_id = $1 RETURNING race_name', [race_id]);
+    const result = await queryWithRetry('DELETE FROM races WHERE race_id = $1 RETURNING race_name', [race_id]);
     
     if (result.rows.length === 0) {
       return res.status(404).send('レースが見つかりませんでした');
@@ -742,7 +743,7 @@ router.post('/delete-race/:race_id', requireAdmin, async (req, res) => {
 // ユーザー一覧ページ
 router.get('/users', requireAdmin, async (req, res) => {
   try {
-    const result = await pool.query(
+    const result = await queryWithRetry(
       'SELECT id, username, display_name, created_at, is_admin FROM users ORDER BY created_at DESC'
     );
     
@@ -767,7 +768,7 @@ router.post('/users/:id/reset-password', requireAdmin, async (req, res) => {
     const bcrypt = require('bcrypt');
     
     // 対象ユーザーの情報を取得
-    const userResult = await pool.query(
+    const userResult = await queryWithRetry(
       'SELECT username, display_name FROM users WHERE id = $1',
       [userId]
     );
@@ -782,7 +783,7 @@ router.post('/users/:id/reset-password', requireAdmin, async (req, res) => {
     const password_hash = await bcrypt.hash(DEFAULT_PASSWORD, 10);
     
     // パスワードを更新
-    await pool.query(
+    await queryWithRetry(
       'UPDATE users SET password_hash = $1 WHERE id = $2',
       [password_hash, userId]
     );

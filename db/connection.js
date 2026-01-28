@@ -7,9 +7,9 @@ const pool = new Pool({
   client_encoding: 'UTF8',
   connectionTimeoutMillis: 20000, // 接続タイムアウト: 20秒
   idleTimeoutMillis: 30000, // アイドルタイムアウト: 30秒
-  max: 10, // 最大接続数
+  max: 20, // 最大接続数（元に戻す）
   statement_timeout: 30000, // クエリタイムアウト: 30秒
-  // Keep-Alive設定を追加
+  // Keep-Alive設定
   keepAlive: true,
   keepAliveInitialDelayMillis: 10000, // 10秒
 });
@@ -30,15 +30,33 @@ pool.on('connect', (client) => {
   client.query('SET timezone = "Asia/Tokyo"');
 });
 
-// 接続取得時のログ
+// 接続取得時のログ（詳細版）
 pool.on('acquire', (client) => {
-  console.log('Client acquired from pool');
+  console.log('Client acquired from pool', {
+    totalCount: pool.totalCount,      // 全接続数
+    idleCount: pool.idleCount,        // アイドル接続数
+    waitingCount: pool.waitingCount   // 待機中のクライアント数
+  });
 });
 
-// 接続解放時のログ
+// 接続解放時のログ（詳細版）
 pool.on('remove', (client) => {
-  console.log('Client removed from pool');
+  console.log('Client removed from pool', {
+    totalCount: pool.totalCount,
+    idleCount: pool.idleCount,
+    waitingCount: pool.waitingCount
+  });
 });
+
+// 定期的にプール状態をログ出力（30秒ごと）
+setInterval(() => {
+  console.log('Connection pool status:', {
+    totalCount: pool.totalCount,
+    idleCount: pool.idleCount,
+    waitingCount: pool.waitingCount,
+    maxConnections: 20
+  });
+}, 30000);
 
 /**
  * 再試行機能付きクエリ実行
