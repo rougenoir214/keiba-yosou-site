@@ -2,6 +2,7 @@
 require('dotenv').config();
 const schedule = require('node-schedule');
 const db = require('./db/connection');
+const { queryWithRetry } = require('./db/connection');
 const webpush = require('web-push');
 
 // 環境変数からVAPIDキーを読み込み
@@ -51,7 +52,7 @@ async function checkAndNotifyDailyReminder() {
       LIMIT 1
     `;
     
-    const firstRaceResult = await db.query(firstRaceQuery);
+    const firstRaceResult = await queryWithRetry(firstRaceQuery);
     
     if (firstRaceResult.rows.length === 0) {
       console.log('📭 本日のレースはありません');
@@ -117,7 +118,7 @@ async function sendDailyReminderNotifications(firstRace) {
       JOIN users u ON ps.user_id = u.id
     `;
     
-    const allUsersResult = await db.query(allUsersQuery);
+    const allUsersResult = await queryWithRetry(allUsersQuery);
     
     if (allUsersResult.rows.length === 0) {
       console.log('   ℹ️  プッシュ通知を登録しているユーザーがいません');
@@ -139,7 +140,7 @@ async function sendDailyReminderNotifications(firstRace) {
           AND DATE(sent_at AT TIME ZONE 'Asia/Tokyo') = (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Tokyo')::date
       `;
       
-      const notificationResult = await db.query(notificationCheckQuery, [user.user_id]);
+      const notificationResult = await queryWithRetry(notificationCheckQuery, [user.user_id]);
       const alreadyNotified = notificationResult.rows[0].notification_count > 0;
 
       if (!alreadyNotified) {
@@ -185,7 +186,7 @@ async function sendReminderPushToUser(userId, firstRace) {
       WHERE user_id = $1
     `;
     
-    const subsResult = await db.query(subsQuery, [userId]);
+    const subsResult = await queryWithRetry(subsQuery, [userId]);
     
     if (subsResult.rows.length === 0) {
       console.log(`   ⚠️  ユーザーID ${userId}: プッシュ通知未登録`);
@@ -224,7 +225,7 @@ async function sendReminderPushToUser(userId, firstRace) {
         // 購読が無効な場合は削除
         if (error.statusCode === 410 || error.statusCode === 404) {
           console.log(`   🗑️  無効な購読を削除: ${sub.endpoint.substring(0, 30)}...`);
-          await db.query('DELETE FROM push_subscriptions WHERE endpoint = $1', [sub.endpoint]);
+          await queryWithRetry('DELETE FROM push_subscriptions WHERE endpoint = $1', [sub.endpoint]);
         } else {
           console.error(`   ❌ 送信エラー: ${error.message}`);
         }
@@ -249,7 +250,7 @@ async function sendReminderPushToUser(userId, firstRace) {
 // 通知送信履歴を記録
 async function recordNotification(raceId, userId, notificationType) {
   try {
-    await db.query(
+    await queryWithRetry(
       `INSERT INTO race_notifications (race_id, user_id, notification_type)
        VALUES ($1, $2, $3)
        ON CONFLICT (race_id, user_id, notification_type) DO NOTHING`,
