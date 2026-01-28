@@ -5,10 +5,13 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
   client_encoding: 'UTF8',
-  connectionTimeoutMillis: 20000, // 接続タイムアウト: 20秒に延長
+  connectionTimeoutMillis: 20000, // 接続タイムアウト: 20秒
   idleTimeoutMillis: 30000, // アイドルタイムアウト: 30秒
-  max: 10, // 最大接続数を10に削減
+  max: 10, // 最大接続数
   statement_timeout: 30000, // クエリタイムアウト: 30秒
+  // Keep-Alive設定を追加
+  keepAlive: true,
+  keepAliveInitialDelayMillis: 10000, // 10秒
 });
 
 // エラーハンドリング
