@@ -8,11 +8,11 @@ const pool = new Pool({
     rejectUnauthorized: false
   },
   client_encoding: 'UTF8',
-  // Supabaseのプール設定に合わせて最適化
-  max: 15, // Supabaseのプールサイズに合わせる
-  min: 2, // 最小接続数
-  idleTimeoutMillis: 20000, // アイドル接続のタイムアウト: 20秒
-  connectionTimeoutMillis: 10000, // 接続確立のタイムアウト: 10秒
+  // より保守的なプール設定に変更
+  max: 5, // 接続数を削減（15 → 5）
+  min: 1, // 最小接続数を削減（2 → 1）
+  idleTimeoutMillis: 10000, // アイドルタイムアウトを短縮: 10秒
+  connectionTimeoutMillis: 15000, // 接続タイムアウトを延長: 15秒
   statement_timeout: 30000, // クエリタイムアウト: 30秒
   query_timeout: 30000, // 追加のクエリタイムアウト
   // 接続の健全性チェック
@@ -69,13 +69,13 @@ async function queryWithRetry(query, params = [], maxRetries = 3) {
       }
 
       // 接続タイムアウトやネットワークエラーの場合のみ再試行
-      const retryableErrors = ['ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', '57P01', '08006'];
+      const retryableErrors = ['ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', '57P01', '08006', 'ECONNREFUSED'];
       if (!retryableErrors.includes(error.code) && !error.message.includes('timeout')) {
         throw error;
       }
 
-      // 指数バックオフで待機（1秒 → 2秒 → 4秒）
-      const waitTime = Math.pow(2, attempt - 1) * 1000;
+      // 指数バックオフで待機（2秒 → 4秒 → 8秒）
+      const waitTime = Math.pow(2, attempt) * 1000;
       console.log(`Retrying after ${waitTime}ms...`);
       await new Promise(resolve => setTimeout(resolve, waitTime));
     }
