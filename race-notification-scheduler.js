@@ -85,8 +85,8 @@ async function checkAndNotifyDailyReminder() {
     console.log(`📋 本日の最初のレース: ${firstRace.race_name} (${firstRace.race_time})`);
     console.log(`⏱️  発走まで: ${minutesUntil}分`);
 
-    // 30分前（28〜32分の範囲）かチェック
-    if (minutesUntil < 28 || minutesUntil > 32) {
+    // 30分前（26〜34分の範囲）かチェック（5分間隔に対応）
+    if (minutesUntil < 26 || minutesUntil > 34) {
       console.log(`⏳ まだ通知タイミングではありません（30分前ではない: ${minutesUntil}分前）`);
       return;
     }
@@ -258,12 +258,12 @@ async function recordNotification(raceId, userId, notificationType) {
 function startScheduler() {
   console.log('🚀 レース予想締切通知スケジューラーを起動します...');
   console.log(`📍 環境: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`⏰ チェック間隔: 1分ごと`);
+  console.log(`⏰ チェック間隔: 5分ごと`);
   console.log(`📋 通知内容: その日の最初のレース30分前に全ユーザーへリマインダー（1日1回）`);
   console.log(`💡 最適化: レースがない日は翌日午前0時までチェックを自動停止\n`);
 
-  // 1分ごとに実行（毎分0秒に実行）
-  const job = schedule.scheduleJob('0 * * * * *', checkAndNotifyDailyReminder);
+  // 5分ごとに実行（0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55分の0秒に実行）
+  const job = schedule.scheduleJob('0 */5 * * * *', checkAndNotifyDailyReminder);
 
   if (job) {
     console.log('✅ スケジューラーが正常に起動しました');
