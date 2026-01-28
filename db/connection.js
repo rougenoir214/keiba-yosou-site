@@ -3,20 +3,12 @@ require('dotenv').config();
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  // Supabase用SSL設定（本番・開発共通）
-  ssl: {
-    rejectUnauthorized: false
-  },
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
   client_encoding: 'UTF8',
-  // より保守的なプール設定に変更
-  max: 5, // 接続数を削減（15 → 5）
-  min: 1, // 最小接続数を削減（2 → 1）
-  idleTimeoutMillis: 10000, // アイドルタイムアウトを短縮: 10秒
-  connectionTimeoutMillis: 15000, // 接続タイムアウトを延長: 15秒
+  connectionTimeoutMillis: 10000, // 接続タイムアウト: 10秒
+  idleTimeoutMillis: 30000, // アイドルタイムアウト: 30秒
+  max: 20, // 最大接続数
   statement_timeout: 30000, // クエリタイムアウト: 30秒
-  query_timeout: 30000, // 追加のクエリタイムアウト
-  // 接続の健全性チェック
-  allowExitOnIdle: false,
 });
 
 // エラーハンドリング
