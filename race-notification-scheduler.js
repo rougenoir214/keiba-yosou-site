@@ -127,26 +127,19 @@ async function sendDailyReminderNotifications(firstRace) {
 
     console.log(`   👥 プッシュ通知登録者: ${allUsersResult.rows.length}名`);
 
-    // 今日まだ通知を送信していないユーザーをフィルタリング（全ユーザーが対象）
-    const usersToNotify = [];
+    // 今日まだ通知を送信していないユーザーを一括で取得（N+1問題を解消）
+    const usersToNotifyQuery = `
+      SELECT DISTINCT ps.user_id, u.display_name
+      FROM push_subscriptions ps
+      JOIN users u ON ps.user_id = u.id
+      LEFT JOIN race_notifications rn ON rn.user_id = ps.user_id
+        AND rn.notification_type = 'daily_reminder'
+        AND DATE(rn.sent_at AT TIME ZONE 'Asia/Tokyo') = (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Tokyo')::date
+      WHERE rn.id IS NULL
+    `;
     
-    for (const user of allUsersResult.rows) {
-      // 今日既に通知を送信したかチェック（日本時間基準）
-      const notificationCheckQuery = `
-        SELECT COUNT(*) as notification_count
-        FROM race_notifications
-        WHERE user_id = $1 
-          AND notification_type = 'daily_reminder'
-          AND DATE(sent_at AT TIME ZONE 'Asia/Tokyo') = (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Tokyo')::date
-      `;
-      
-      const notificationResult = await queryWithRetry(notificationCheckQuery, [user.user_id]);
-      const alreadyNotified = notificationResult.rows[0].notification_count > 0;
-
-      if (!alreadyNotified) {
-        usersToNotify.push(user);
-      }
-    }
+    const usersToNotifyResult = await queryWithRetry(usersToNotifyQuery);
+    const usersToNotify = usersToNotifyResult.rows;
 
     if (usersToNotify.length === 0) {
       console.log('   ℹ️  通知対象のユーザーはいません（全員送信済み）');
