@@ -16,10 +16,22 @@ if (vapidPublicKey && vapidPrivateKey) {
   console.error('❌ VAPIDキーが設定されていません');
 }
 
+// レース有無のキャッシュ（日付ごと）
+let noRaceUntil = null; // レースがない場合の次回チェック時刻
+
 // その日の最初のレースの30分前に、まだ予想していないユーザーに通知
 async function checkAndNotifyDailyReminder() {
   try {
-    console.log('⏰ 本日のレース予想締切チェック開始:', new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }));
+    const now = new Date();
+    
+    // レースがないと判定された期間中はスキップ
+    if (noRaceUntil && now < noRaceUntil) {
+      const remainingHours = Math.ceil((noRaceUntil - now) / (1000 * 60 * 60));
+      console.log(`💤 レースがないためスキップ中（次回チェック: ${noRaceUntil.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })} まであと約${remainingHours}時間）`);
+      return;
+    }
+    
+    console.log('⏰ 本日のレース予想締切チェック開始:', now.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }));
 
     // 今日の最初のレース（最も早い発走時刻）の30分前（±2分の誤差を許容）かチェック
     // データは日本時間で保存されているため、日本時間で比較
@@ -43,8 +55,28 @@ async function checkAndNotifyDailyReminder() {
     
     if (firstRaceResult.rows.length === 0) {
       console.log('📭 本日のレースはありません');
+      
+      // 次の日の午前0時までチェックをスキップ
+      const tomorrow = new Date(now);
+      tomorrow.setHours(0, 0, 0, 0);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      
+      // 日本時間での明日0時を計算（JSTはUTC+9）
+      const jstOffset = 9 * 60 * 60 * 1000;
+      const nowJST = new Date(now.getTime() + jstOffset);
+      const tomorrowJST = new Date(nowJST);
+      tomorrowJST.setHours(0, 0, 0, 0);
+      tomorrowJST.setDate(tomorrowJST.getDate() + 1);
+      noRaceUntil = new Date(tomorrowJST.getTime() - jstOffset);
+      
+      const hoursUntilTomorrow = Math.ceil((noRaceUntil - now) / (1000 * 60 * 60));
+      console.log(`⏸️  次回チェックを ${noRaceUntil.toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })} まで停止します（約${hoursUntilTomorrow}時間後）`);
+      console.log('💡 データベースへの不要なアクセスを削減し、リソースを節約します\n');
       return;
     }
+    
+    // レースがある場合はキャッシュをクリア
+    noRaceUntil = null;
 
     const firstRace = firstRaceResult.rows[0];
     const minutesUntil = Math.round(firstRace.minutes_until);
@@ -233,7 +265,8 @@ function startScheduler() {
   console.log('🚀 レース予想締切通知スケジューラーを起動します...');
   console.log(`📍 環境: ${process.env.NODE_ENV || 'development'}`);
   console.log(`⏰ チェック間隔: 1分ごと`);
-  console.log(`📋 通知内容: その日の最初のレース30分前に全ユーザーへリマインダー（1日1回）\n`);
+  console.log(`📋 通知内容: その日の最初のレース30分前に全ユーザーへリマインダー（1日1回）`);
+  console.log(`💡 最適化: レースがない日は翌日午前0時までチェックを自動停止\n`);
 
   // 1分ごとに実行（毎分0秒に実行）
   const job = schedule.scheduleJob('0 * * * * *', checkAndNotifyDailyReminder);
