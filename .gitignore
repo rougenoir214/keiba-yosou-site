@@ -6,6 +6,8 @@ package-lock.json
 .env
 .env.local
 .env.production
+.env.backup
+.env.*
 
 # アップロードファイル
 uploads/
